@@ -88,16 +88,6 @@ if [ -z "$SSH_CMD" ]; then
     read -rp "Paste the full SSH command: " SSH_CMD
 fi
 
-# Warn if user pasted the RunPod proxy URL (doesn't support rsync)
-if echo "$SSH_CMD" | grep -q "ssh.runpod.io"; then
-    echo ""
-    echo "ERROR: The ssh.runpod.io proxy URL doesn't support rsync (it injects a PTY banner)."
-    echo "In the RunPod Connect dialog, use the 'SSH over exposed TCP' option which gives:"
-    echo "  ssh root@<IP> -p <PORT> -i ~/.ssh/id_ed25519"
-    echo ""
-    read -rp "Paste the TCP SSH command: " SSH_CMD
-fi
-
 # Parse host and port out of the ssh command
 SSH_USER_HOST=$(echo "$SSH_CMD" | grep -oE '[A-Za-z0-9._-]+@[^ ]+' | head -1 || true)
 SSH_PORT=$(echo "$SSH_CMD" | grep -oE '\-p [0-9]+' | grep -oE '[0-9]+' | head -1 || true)
@@ -107,7 +97,6 @@ if [ -z "$SSH_USER_HOST" ]; then
     exit 1
 fi
 
-# ── 6. Rsync ─────────────────────────────────────────────────
 mkdir -p "$LOCAL_DEST"
 echo ""
 echo "Pod  : $POD_NAME ($POD_ID)"
@@ -117,20 +106,45 @@ echo "Dest : $LOCAL_DEST"
 echo ""
 
 SSH_KEY="$HOME/.ssh/id_ed25519"
-SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR -o BatchMode=yes -q"
+SSH_OPTS="-T -i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR -o BatchMode=yes -q"
 [ -n "$SSH_PORT" ] && SSH_OPTS="-p $SSH_PORT $SSH_OPTS"
 
-# Verify connection before rsync
-echo "Testing SSH connection ..."
-if ! ssh $SSH_OPTS "$SSH_USER_HOST" "echo OK" 2>&1; then
-    echo "ERROR: SSH connection failed. Check your key and that the pod is ready."
+# ── Strategy: RunPod community cloud SSH proxy blocks rsync/scp. ─
+# Instead: SSH to create a tar.gz, serve it via Python HTTP,
+# download through RunPod's proxy URL, extract locally.
+HTTP_PORT=8765
+
+echo "Creating archive on pod ..."
+# Run in background; stdout may include RunPod's PTY banner — that's OK here
+ssh $SSH_OPTS "$SSH_USER_HOST" \
+  "cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/ 2>/dev/null && \
+   pkill -f 'http.server $HTTP_PORT' 2>/dev/null || true && \
+   nohup python3 -m http.server $HTTP_PORT --directory /tmp > /tmp/http.log 2>&1 &" || true
+
+echo "Waiting for HTTP server to start ..."
+sleep 4
+
+DOWNLOAD_URL="https://${POD_ID}-${HTTP_PORT}.proxy.runpod.net/runpod_outputs.tar.gz"
+TMP_TAR="/tmp/runpod_outputs_$$.tar.gz"
+
+echo "Downloading from: $DOWNLOAD_URL"
+if ! curl -fL --progress-bar -o "$TMP_TAR" "$DOWNLOAD_URL"; then
+    echo ""
+    echo "ERROR: Download failed. Possible causes:"
+    echo "  1. Pod isn't ready yet (wait ~30s and retry)"
+    echo "  2. Port $HTTP_PORT is firewalled — try restarting and adding port $HTTP_PORT/http in pod settings"
+    echo "  3. The archive creation failed — SSH into the pod and check /tmp/runpod_outputs.tar.gz"
+    rm -f "$TMP_TAR"
     exit 1
 fi
 
-rsync -avz --progress \
-    -e "ssh $SSH_OPTS" \
-    "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
-    "$LOCAL_DEST/"
+echo "Extracting ..."
+tar xzf "$TMP_TAR" --strip-components=0 -C "$LOCAL_DEST" 2>/dev/null || \
+  tar xzf "$TMP_TAR" -C "$LOCAL_DEST"
+rm -f "$TMP_TAR"
+
+# Kill the HTTP server on the pod (best-effort)
+ssh $SSH_OPTS "$SSH_USER_HOST" "pkill -f 'http.server $HTTP_PORT' 2>/dev/null || true" 2>/dev/null || true
 
 echo ""
 echo "Done — results saved to $LOCAL_DEST"
