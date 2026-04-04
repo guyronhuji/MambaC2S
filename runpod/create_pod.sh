@@ -38,10 +38,10 @@ RAW_JSON=$(curl -sf -X POST "https://api.runpod.io/graphql?api_key=${API_KEY}" \
     -H "Content-Type: application/json" \
     -d "$QUERY") || { echo "ERROR: Failed to query RunPod API"; exit 1; }
 
-GPU_LIST=$(echo "$RAW_JSON" | python3 - <<'PYEOF'
-import sys, json
+GPU_LIST=$(RUNPOD_RAW="$RAW_JSON" python3 - <<'PYEOF'
+import os, sys, json
 
-data = json.load(sys.stdin)
+data = json.loads(os.environ["RUNPOD_RAW"])
 
 gpus = data.get("data", {}).get("gpuTypes", [])
 
