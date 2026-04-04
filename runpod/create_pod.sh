@@ -34,7 +34,7 @@ echo ""
 
 # Query the GraphQL API for real-time availability
 GPU_LIST=$(RUNPOD_API_KEY="$API_KEY" python3 - <<'PYEOF'
-import os, json, ssl, urllib.request, urllib.error
+import os, sys, json, ssl, urllib.request, urllib.error
 
 api_key = os.environ["RUNPOD_API_KEY"]
 
@@ -64,7 +64,7 @@ url = f"https://api.runpod.io/graphql?api_key={api_key}"
 req = urllib.request.Request(
     url,
     data=json.dumps({"query": query}).encode(),
-    headers={"Content-Type": "application/json"},
+    headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
 )
 
 try:
