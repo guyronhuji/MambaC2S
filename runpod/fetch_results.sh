@@ -106,20 +106,21 @@ echo "Dest : $LOCAL_DEST"
 echo ""
 
 SSH_KEY="$HOME/.ssh/id_ed25519"
-SSH_OPTS="-T -i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR -o BatchMode=yes -q"
+# -tt forces PTY allocation — required by RunPod's ssh.runpod.io proxy
+SSH_OPTS="-tt -i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR"
 [ -n "$SSH_PORT" ] && SSH_OPTS="-p $SSH_PORT $SSH_OPTS"
 
 # ── Strategy: RunPod community cloud SSH proxy blocks rsync/scp. ─
-# Instead: SSH to create a tar.gz, serve it via Python HTTP,
-# download through RunPod's proxy URL, extract locally.
+# Instead: SSH (-tt for proxy compat) to create a tar.gz, serve it via
+# Python HTTP, download through RunPod's proxy URL, extract locally.
 HTTP_PORT=8765
 
 echo "Creating archive on pod ..."
-# Run in background; stdout may include RunPod's PTY banner — that's OK here
 ssh $SSH_OPTS "$SSH_USER_HOST" \
-  "cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/ 2>/dev/null && \
-   pkill -f 'http.server $HTTP_PORT' 2>/dev/null || true && \
-   nohup python3 -m http.server $HTTP_PORT --directory /tmp > /tmp/http.log 2>&1 &" || true
+  "cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/ 2>/dev/null; \
+   pkill -f 'http.server $HTTP_PORT' 2>/dev/null; \
+   nohup python3 -m http.server $HTTP_PORT --directory /tmp >/tmp/http.log 2>&1 & \
+   sleep 1 && echo READY" 2>/dev/null || true
 
 echo "Waiting for HTTP server to start ..."
 sleep 4
