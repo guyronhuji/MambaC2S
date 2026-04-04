@@ -190,6 +190,9 @@ def main() -> None:
             max_seq_len=model_cfg["max_seq_len"],
         )
     elif model_type == "mamba":
+        from src.models.mamba_model import _MAMBA_SSM_AVAILABLE
+        backend = "mamba_ssm (CUDA kernels)" if _MAMBA_SSM_AVAILABLE else "SimpleMambaLM (pure-PyTorch fallback)"
+        logger.info("Mamba backend: %s", backend)
         model = build_mamba_model(
             vocab_size=vocab_size,
             d_model=model_cfg["d_model"],
