@@ -53,17 +53,18 @@ cat ~/.ssh/id_ed25519.pub
 # (generate one first if needed: ssh-keygen -t ed25519)
 ```
 
-**Create a pod:**
+**Create a pod** (shows live GPU prices, prompts you to choose):
 ```bash
-./runpod/create_pod.sh   # tries RTX 3090 → 4090 → A40 → A100
+./runpod/create_pod.sh
 ```
 
-**SSH into the pod** (get the command from runpod.io → Pods → Connect → SSH):
+**SSH into the pod** — get the exact command from runpod.io → Pods → Connect → SSH.
+It looks like:
 ```bash
-ssh yk23p2p92l9t8c-64411c9e@ssh.runpod.io -i ~/.ssh/id_ed25519
+ssh <podid>-<hash>@ssh.runpod.io -i ~/.ssh/id_ed25519
 ```
 
-**Set up the pod** (run inside the pod — takes ~2 min):
+**Set up the pod** (run inside the pod — ~2 min, uses `uv` for fast installs):
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/guyronhuji/MambaC2S/main/runpod/setup_pod.sh)
 ```
@@ -72,12 +73,20 @@ bash <(curl -s https://raw.githubusercontent.com/guyronhuji/MambaC2S/main/runpod
 ```bash
 cd /workspace/MambaC2S && bash runpod/train.sh
 ```
-`train.sh` automatically runs `prepare_data.py` and `make_splits.py` if needed.
+`train.sh` automatically runs `prepare_data.py` and `make_splits.py` if not already done.
 
-**Fetch results back to your local machine:**
+**Fetch results back to your local machine** (run this on your Mac, not the pod):
 ```bash
-bash runpod/fetch_results.sh yk23p2p92l9t8c-64411c9e@ssh.runpod.io
-# Results saved to ./outputs/runpod/
+# Replace the SSH address with yours from the Connect page
+bash runpod/fetch_results.sh <podid>-<hash>@ssh.runpod.io
+```
+Results are saved to `./outputs/runpod/`. The script uses `rsync` so re-running it
+only copies new or changed files.
+
+To check what results are available before fetching:
+```bash
+ssh <podid>-<hash>@ssh.runpod.io -i ~/.ssh/id_ed25519 \
+    "ls /workspace/MambaC2S/outputs/"
 ```
 
 **Stop the pod when done** (from runpod.io console or):
