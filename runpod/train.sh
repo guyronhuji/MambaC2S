@@ -22,7 +22,14 @@ if [ ! -f data/split_manifest.json ]; then
     python scripts/make_splits.py
 fi
 
-LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
+# Resume the most recent run dir if it has done/failed jobs; else start fresh
+PREV_DIR=$(ls -dt outputs/runpod_run_* 2>/dev/null | head -1 || true)
+if [ -n "$PREV_DIR" ] && ls "$PREV_DIR"/*.status 2>/dev/null | xargs grep -ql "done\|failed" 2>/dev/null; then
+    LOG_DIR="$PREV_DIR"
+    echo "Resuming previous run: $LOG_DIR"
+else
+    LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
+fi
 mkdir -p "$LOG_DIR"
 
 echo "Experiment matrix — $(date)"
@@ -30,12 +37,31 @@ echo "Parallel jobs : $PARALLEL_JOBS   Refresh : ${REFRESH}s"
 echo "Logs → $LOG_DIR"
 echo ""
 
-JOBS=()
+ALL_JOBS=()
 for model in transformer mamba; do
     for scheme in rank_only strength_only hybrid; do
-        JOBS+=("${model}|${scheme}")
+        ALL_JOBS+=("${model}|${scheme}")
     done
 done
+
+# Skip jobs already completed or failed
+JOBS=()
+for job in "${ALL_JOBS[@]}"; do
+    model="${job%%|*}"
+    scheme="${job##*|}"
+    statusfile="$LOG_DIR/${model}_${scheme}.status"
+    if [ -f "$statusfile" ] && grep -q "done" "$statusfile"; then
+        echo "  skipping ${model}/${scheme} (already done)"
+    else
+        JOBS+=("$job")
+    fi
+done
+
+if [ ${#JOBS[@]} -eq 0 ]; then
+    echo "All experiments already completed."
+    exit 0
+fi
+echo ""
 
 # ── Job runner (runs in background) ─────────────────────────
 run_job() {
@@ -55,7 +81,7 @@ run_job() {
 export -f run_job
 
 # Start rich monitor in foreground (it exits when all jobs finish)
-python runpod/monitor.py --log-dir "$LOG_DIR" --jobs "${#JOBS[@]}" --refresh "$REFRESH" &
+python runpod/monitor.py --log-dir "$LOG_DIR" --jobs "${#ALL_JOBS[@]}" --refresh "$REFRESH" &
 MONITOR_PID=$!
 
 # ── Parallel job runner ──────────────────────────────────────
@@ -68,13 +94,12 @@ for job in "${JOBS[@]}"; do
     echo "queued" > "$statusfile"
 
     while [ ${#PIDS[@]} -ge "$PARALLEL_JOBS" ]; do
-        for i in "${!PIDS[@]}"; do
-            if ! kill -0 "${PIDS[$i]}" 2>/dev/null; then
-                unset 'PIDS[$i]'
-                PIDS=("${PIDS[@]+"${PIDS[@]}"}")
-            fi
+        wait -n 2>/dev/null || true   # reap one finished job (removes zombie)
+        new_pids=()
+        for pid in "${PIDS[@]}"; do
+            kill -0 "$pid" 2>/dev/null && new_pids+=("$pid")
         done
-        sleep 2
+        PIDS=("${new_pids[@]+"${new_pids[@]}"}")
     done
 
     run_job "$model" "$scheme" "$logfile" "$statusfile" &
