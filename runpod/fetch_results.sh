@@ -105,42 +105,39 @@ echo "SSH  : $SSH_USER_HOST${SSH_PORT:+ port $SSH_PORT}"
 echo "Dest : $LOCAL_DEST"
 echo ""
 
-HTTP_PORT=8765
-DOWNLOAD_URL="https://${POD_ID}-${HTTP_PORT}.proxy.runpod.net/runpod_outputs.tar.gz"
 TMP_TAR="/tmp/runpod_outputs_$$.tar.gz"
 
-# ── RunPod community cloud SSH proxy always opens an interactive shell. ──
-# We can't run commands through it programmatically. Instead, we print
-# the commands for the user to paste into their pod terminal, then download
-# the result via RunPod's HTTP proxy URL.
+# ── RunPod community cloud: use runpodctl send/receive (croc protocol) ──
+# No ports needed — works through the SSH proxy.
 echo ""
 echo "============================================================"
-echo "  RunPod's SSH proxy only supports interactive sessions."
-echo "  Paste these two commands into your pod terminal:"
+echo "  In your pod SSH session, run:"
 echo ""
-echo "    cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/"
-echo "    nohup python3 -m http.server $HTTP_PORT --directory /tmp &"
+echo "    cd /workspace/MambaC2S && tar czf /tmp/outputs.tar.gz outputs/ && runpodctl send /tmp/outputs.tar.gz"
 echo ""
-echo "  Then come back here and press Enter."
+echo "  It will print a code like:  8338-galileo-collect-fidel"
 echo "============================================================"
 echo ""
-read -rp "Press Enter when done (HTTP server is running on pod) ..."
+read -rp "Paste the code here: " TRANSFER_CODE
 
-echo ""
-echo "Downloading from: $DOWNLOAD_URL"
-if ! curl -fL --progress-bar -o "$TMP_TAR" "$DOWNLOAD_URL"; then
-    echo ""
-    echo "ERROR: Download failed."
-    echo "  - Make sure port $HTTP_PORT is exposed in pod settings (Stop → Edit → add $HTTP_PORT/http → Start)"
-    echo "  - Or check that /tmp/runpod_outputs.tar.gz exists on the pod"
-    rm -f "$TMP_TAR"
+if [ -z "$TRANSFER_CODE" ]; then
+    echo "No code entered."
     exit 1
 fi
 
-echo "Extracting ..."
-tar xzf "$TMP_TAR" -C "$LOCAL_DEST"
-rm -f "$TMP_TAR"
+mkdir -p "$LOCAL_DEST"
+echo ""
+echo "Receiving ..."
+cd "$LOCAL_DEST"
+runpodctl receive "$TRANSFER_CODE"
+
+# Extract if a tar.gz landed here
+TAR_FILE=$(ls outputs.tar.gz 2>/dev/null || ls *.tar.gz 2>/dev/null | head -1 || true)
+if [ -n "$TAR_FILE" ]; then
+    echo "Extracting $TAR_FILE ..."
+    tar xzf "$TAR_FILE" --strip-components=1 2>/dev/null || tar xzf "$TAR_FILE"
+    rm -f "$TAR_FILE"
+fi
 
 echo ""
 echo "Done — results saved to $LOCAL_DEST"
-echo "You can stop the HTTP server on the pod with:  kill %1"
