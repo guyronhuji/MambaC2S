@@ -9,13 +9,7 @@
 
 set -euo pipefail
 
-echo "=== [1/4] Installing uv ==="
-curl -Lf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-echo "uv installed: $(uv --version)"
-
-echo ""
-echo "=== [2/4] Cloning repo ==="
+echo "=== [1/4] Cloning repo ==="
 if [ ! -d /workspace/MambaC2S ]; then
     git clone https://github.com/guyronhuji/MambaC2S.git /workspace/MambaC2S
 else
@@ -26,13 +20,13 @@ cd /workspace/MambaC2S
 echo "Repo ready at $(pwd)"
 
 echo ""
-echo "=== [3/4] Installing dependencies ==="
-uv pip install --system --verbose \
+echo "=== [2/4] Installing dependencies ==="
+pip install \
     PyCytoData anndata umap-learn scikit-learn \
     matplotlib seaborn pyyaml tabulate rich
 
 echo ""
-echo "=== [3b/4] Installing mamba-ssm (CUDA kernels) ==="
+echo "=== [3/4] Installing mamba-ssm (CUDA kernels) ==="
 # mamba-ssm compiles C++/CUDA extensions — must use pip (not uv) and PyTorch
 # must match the system CUDA toolkit. Force-reinstall PyTorch for cu121 first.
 if nvcc --version &>/dev/null; then
@@ -48,7 +42,7 @@ else
 fi
 
 echo ""
-echo "=== [4/4] Verifying GPU ==="
+echo "=== [4/4] Verifying installation ==="
 python3 -c "
 import torch
 print('CUDA available :', torch.cuda.is_available())
