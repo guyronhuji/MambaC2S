@@ -89,7 +89,7 @@ fi
 
 # Parse host and port out of the ssh command
 # Format: ssh root@HOST -p PORT -i KEY  OR  ssh user@HOST -i KEY
-SSH_USER_HOST=$(echo "$SSH_CMD" | grep -oE '[a-z]+@[^ ]+' | head -1)
+SSH_USER_HOST=$(echo "$SSH_CMD" | grep -oE '[A-Za-z0-9._-]+@[^ ]+' | head -1)
 SSH_PORT=$(echo "$SSH_CMD" | grep -oE '\-p [0-9]+' | awk '{print $2}' || true)
 
 if [ -z "$SSH_USER_HOST" ]; then
