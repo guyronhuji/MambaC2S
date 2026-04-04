@@ -33,7 +33,6 @@ if nvcc --version &>/dev/null; then
     # --no-build-isolation is required: tells pip to use the existing CUDA-enabled
     # PyTorch in the environment instead of pulling a CPU-only torch into an
     # isolated build env (which causes the CUDA version mismatch error).
-    pip install "causal-conv1d>=1.4.0" --no-build-isolation
     pip install mamba-ssm --no-build-isolation
 else
     echo "nvcc not found — skipping mamba-ssm (pure-PyTorch fallback will be used)."
