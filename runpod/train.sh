@@ -54,76 +54,8 @@ run_job() {
 }
 export -f run_job
 
-# ── Live monitor (runs in background) ───────────────────────
-monitor() {
-    local log_dir="$1"
-    # Map experiment name → output dir (most recent match)
-    while true; do
-        sleep "$REFRESH"
-        # Move cursor up to overwrite previous table
-        # Count lines: header(3) + one per job entry
-        local entries
-        entries=$(python3 - "$log_dir" <<'PYEOF'
-import sys, os, csv, glob, re
-
-log_dir = sys.argv[1]
-rows = []
-
-for logfile in sorted(glob.glob(f"{log_dir}/*.log")):
-    name = os.path.basename(logfile).replace(".log", "").replace("_", "/", 1)
-    statusfile = logfile.replace(".log", ".status")
-    status = open(statusfile).read().strip() if os.path.exists(statusfile) else "queued"
-
-    # Parse output dir from log line: "Experiment ID: xxx  →  outputs/xxx"
-    exp_dir = ""
-    max_epochs = "?"
-    try:
-        for line in open(logfile):
-            if "Experiment ID:" in line and "→" in line:
-                exp_dir = line.split("→")[-1].strip()
-            if "max_epochs=" in line:
-                m = re.search(r"max_epochs=(\d+)", line)
-                if m:
-                    max_epochs = m.group(1)
-    except Exception:
-        pass
-
-    epoch, train_loss, val_loss, val_ppl = "-", "-", "-", "-"
-    if exp_dir and os.path.exists(f"{exp_dir}/training_log.csv"):
-        try:
-            with open(f"{exp_dir}/training_log.csv") as f:
-                rows_csv = list(csv.DictReader(f))
-            if rows_csv:
-                last = rows_csv[-1]
-                epoch      = last.get("epoch", "-")
-                train_loss = f"{float(last['train_loss']):.3f}" if last.get("train_loss") else "-"
-                val_loss   = f"{float(last['val_loss']):.3f}"   if last.get("val_loss")   else "-"
-                val_ppl    = f"{float(last['val_perplexity']):.1f}" if last.get("val_perplexity") else "-"
-        except Exception:
-            pass
-
-    icon = {"running": ">>", "done": "OK", "failed": "!!", "queued": ".."}. get(status, "??")
-    ep_str = f"{epoch}/{max_epochs}" if epoch != "-" else "-"
-    rows.append((icon, name, ep_str, train_loss, val_loss, val_ppl))
-
-n = len(rows)
-print(f"\033[{n+3}A", end="")
-print(f"\033[2K{'':2} {'Experiment':<30} {'Epoch':<9} {'TrLoss':<9} {'ValLoss':<9} {'Pplx'}")
-print(f"\033[2K{'--'} {'-'*30} {'-'*9} {'-'*9} {'-'*9} {'----'}")
-for icon, name, ep, tl, vl, ppl in rows:
-    print(f"\033[2K{icon} {name:<30} {ep:<9} {tl:<9} {vl:<9} {ppl}")
-PYEOF
-        )
-        printf "%s\n" "$entries"
-    done
-}
-
-# Print blank lines for the monitor to overwrite
-for job in "${JOBS[@]}"; do echo ""; done
-echo ""; echo ""  # header lines
-
-# Start monitor in background
-monitor "$LOG_DIR" &
+# Start rich monitor in foreground (it exits when all jobs finish)
+python runpod/monitor.py --log-dir "$LOG_DIR" --jobs "${#JOBS[@]}" --refresh "$REFRESH" &
 MONITOR_PID=$!
 
 # ── Parallel job runner ──────────────────────────────────────

@@ -29,7 +29,7 @@ echo ""
 echo "=== [3/4] Installing dependencies ==="
 uv pip install --system --verbose \
     PyCytoData anndata umap-learn scikit-learn \
-    matplotlib seaborn pyyaml tabulate
+    matplotlib seaborn pyyaml tabulate rich
 
 echo ""
 echo "=== [4/4] Verifying GPU ==="
