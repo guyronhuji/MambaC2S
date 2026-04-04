@@ -122,10 +122,11 @@ def main() -> None:
 
     collate = partial(CellSequenceDataset.collate_fn, pad_id=pad_id)
     bs = cfg["training"]["batch_size"]
+    nw = cfg["training"].get("num_workers", 0)
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True,
-                              collate_fn=collate, num_workers=0)
+                              collate_fn=collate, num_workers=nw, pin_memory=True)
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False,
-                            collate_fn=collate, num_workers=0)
+                            collate_fn=collate, num_workers=nw, pin_memory=True)
 
     # Build model
     model_cfg = cfg["model"]
