@@ -35,11 +35,12 @@ IMAGE="runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04"
 DISK_GB=50
 # ─────────────────────────────────────────────────────────────
 
-# Verify CLI is configured
-if ! runpodctl config list 2>/dev/null | grep -q "apiKey"; then
-  echo "ERROR: runpodctl not configured. Run:"
-  echo "  runpodctl config --apiKey <YOUR_KEY>"
-  exit 1
+# Auto-configure from .runpodkey if present
+KEYFILE="$(dirname "$0")/../.runpodkey"
+if [ -f "$KEYFILE" ]; then
+  API_KEY=$(awk '{print $2}' "$KEYFILE")
+  mkdir -p ~/.runpod
+  printf "apiKey: %s\napiUrl: https://api.runpod.io/graphql\n" "$API_KEY" > ~/.runpod/.runpod.yaml
 fi
 
 echo "Creating RunPod pod: $POD_NAME"

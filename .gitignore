@@ -49,6 +49,11 @@ outputs/
 .wolf/buglog.json
 .wolf/designqc-captures/
 
+# Secrets
+.runpodkey
+*.key
+*.secret
+
 # Misc
 *.log
 *.tmp
