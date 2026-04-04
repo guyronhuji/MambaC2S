@@ -19,6 +19,7 @@ from typing import Any, Optional
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 from src.models.base import BaseModel
 from src.utils.logging import TrainingLogger
@@ -176,7 +177,13 @@ class Trainer:
             self.max_epochs, self.patience, self.device,
         )
 
-        for epoch in range(1, self.max_epochs + 1):
+        epoch_bar = tqdm(
+            range(1, self.max_epochs + 1),
+            desc="Epochs",
+            unit="epoch",
+            dynamic_ncols=True,
+        )
+        for epoch in epoch_bar:
             train_loss = self._train_epoch()
             val_loss, val_ppl = self._val_epoch()
             current_lr = self.optimiser.param_groups[0]["lr"]
@@ -189,23 +196,25 @@ class Trainer:
                 lr=current_lr,
             )
 
-            if val_loss < self._best_val_loss:
+            improved = val_loss < self._best_val_loss
+            if improved:
                 self._best_val_loss = val_loss
                 best_epoch = epoch
                 self._epochs_no_improve = 0
                 self._save_checkpoint(epoch)
-                logger.info(
-                    "Epoch %d: val_loss improved to %.4f — checkpoint saved.",
-                    epoch, val_loss,
-                )
-            else:
+
+            epoch_bar.set_postfix(
+                train=f"{train_loss:.4f}",
+                val=f"{val_loss:.4f}",
+                ppl=f"{val_ppl:.1f}",
+                best=f"e{best_epoch}",
+                marker="*" if improved else "",
+            )
+
+            if not improved:
                 self._epochs_no_improve += 1
-                logger.info(
-                    "Epoch %d: val_loss=%.4f (no improvement %d/%d).",
-                    epoch, val_loss, self._epochs_no_improve, self.patience,
-                )
                 if self._epochs_no_improve >= self.patience:
-                    logger.info("Early stopping triggered at epoch %d.", epoch)
+                    tqdm.write(f"Early stopping at epoch {epoch}.")
                     break
 
         return {
@@ -224,7 +233,14 @@ class Trainer:
         total_loss = 0.0
         n_tokens = 0
 
-        for batch in self.train_loader:
+        batch_bar = tqdm(
+            self.train_loader,
+            desc="  batches",
+            leave=False,
+            unit="batch",
+            dynamic_ncols=True,
+        )
+        for batch in batch_bar:
             input_ids = batch["input_ids"].to(self.device)
             attn_mask = batch["attention_mask"].to(self.device)
 
@@ -269,6 +285,7 @@ class Trainer:
             n = tgt_mask.sum().item()
             total_loss += loss.item() * n
             n_tokens += n
+            batch_bar.set_postfix(loss=f"{loss.item():.4f}")
 
         return total_loss / max(n_tokens, 1)
 
