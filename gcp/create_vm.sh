@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # Create a GCP GPU VM for MambaC2S training
-# Queries live quota to find the best available GPU and zone.
+# Tries zones in order until one has capacity.
 # Compatible with bash 3.2 (macOS default).
 #
 # Usage:
@@ -11,7 +11,6 @@
 # Cost estimates (on-demand, approximate):
 #   T4  (n1-standard-4)  ≈ $0.35/hr
 #   L4  (g2-standard-4)  ≈ $0.70/hr
-#   A100(a2-highgpu-1g)  ≈ $3.67/hr
 # ============================================================
 
 set -euo pipefail
@@ -20,93 +19,41 @@ PROJECT=$(gcloud config get-value project)
 VM_NAME="mambac2s-vm"
 DISK_SIZE="50GB"
 
-# Map GPU quota name → machine type (bash 3.2 compatible: no declare -A)
-gpu_machine() {
-  case "$1" in
-    NVIDIA_A100_80GB_GPUS) echo "a2-ultragpu-1g" ;;
-    NVIDIA_A100_GPUS)      echo "a2-highgpu-1g" ;;
-    NVIDIA_L4_GPUS)        echo "g2-standard-4" ;;
-    NVIDIA_T4_GPUS)        echo "n1-standard-4" ;;
-  esac
-}
-
-gpu_accel() {
-  case "$1" in
-    NVIDIA_A100_80GB_GPUS) echo "nvidia-a100-80gb" ;;
-    NVIDIA_A100_GPUS)      echo "nvidia-tesla-a100" ;;
-    NVIDIA_L4_GPUS)        echo "nvidia-l4" ;;
-    NVIDIA_T4_GPUS)        echo "nvidia-tesla-t4" ;;
-  esac
-}
-
-GPU_PRIORITY="NVIDIA_A100_80GB_GPUS NVIDIA_A100_GPUS NVIDIA_L4_GPUS NVIDIA_T4_GPUS"
+# ── Preferred zones (edit to reorder) ────────────────────────
+# Format: "zone:machine-type:accelerator"
+CANDIDATES=(
+  "europe-west4-a:n1-standard-4:nvidia-tesla-t4"
+  "europe-west4-b:n1-standard-4:nvidia-tesla-t4"
+  "europe-west4-c:n1-standard-4:nvidia-tesla-t4"
+  "europe-west4-a:g2-standard-4:nvidia-l4"
+  "europe-west4-b:g2-standard-4:nvidia-l4"
+  "us-central1-a:n1-standard-4:nvidia-tesla-t4"
+  "us-central1-b:n1-standard-4:nvidia-tesla-t4"
+  "us-central1-c:n1-standard-4:nvidia-tesla-t4"
+  "us-central1-f:n1-standard-4:nvidia-tesla-t4"
+  "us-east1-c:n1-standard-4:nvidia-tesla-t4"
+  "us-east1-d:n1-standard-4:nvidia-tesla-t4"
+  "us-west1-b:n1-standard-4:nvidia-tesla-t4"
+)
+# ─────────────────────────────────────────────────────────────
 
 echo "Project : $PROJECT"
 echo ""
-echo "Querying GPU quota across all regions ..."
-echo "(this takes ~30 seconds)"
-echo ""
 
-# Build quota table: region  GPU_TYPE  limit  usage  available
-QUOTA_TABLE=$(
-  for r in $(gcloud compute regions list --format="value(name)"); do
-    gcloud compute regions describe "$r" \
-      --flatten="quotas[]" \
-      --format="csv[no-heading](name,quotas.metric,quotas.limit,quotas.usage)" 2>/dev/null
-  done | awk -F, '
-    $2=="NVIDIA_T4_GPUS" || $2=="NVIDIA_L4_GPUS" || $2=="NVIDIA_A100_GPUS" || $2=="NVIDIA_A100_80GB_GPUS" {
-      avail = ($3+0) - ($4+0)
-      if (avail > 0)
-        printf "%s %s %.0f %.0f %.0f\n", $1, $2, $3+0, $4+0, avail
-    }
-  '
-)
-
-if [ -z "$QUOTA_TABLE" ]; then
-  echo "ERROR: No GPU quota available in any region."
-  echo "Request a quota increase at: https://console.cloud.google.com/iam-admin/quotas"
-  exit 1
-fi
-
-echo "Regions with available GPU quota:"
-printf "%-20s %-26s %8s %8s %8s\n" "REGION" "GPU" "LIMIT" "USED" "FREE"
-printf "%-20s %-26s %8s %8s %8s\n" "------" "---" "-----" "----" "----"
-echo "$QUOTA_TABLE" | while read -r region gpu limit used avail; do
-  printf "%-20s %-26s %8.0f %8.0f %8.0f\n" "$region" "$gpu" "$limit" "$used" "$avail"
-done
-echo ""
-
-# Pick the best GPU type available (highest priority first)
-CHOSEN_GPU=""
-CHOSEN_REGION=""
-for gpu in $GPU_PRIORITY; do
-  match=$(echo "$QUOTA_TABLE" | awk -v g="$gpu" '$2==g {print $1; exit}')
-  if [ -n "$match" ]; then
-    CHOSEN_GPU="$gpu"
-    CHOSEN_REGION="$match"
-    break
-  fi
-done
-
-if [ -z "$CHOSEN_GPU" ]; then
-  echo "ERROR: Could not match any GPU type."
-  exit 1
-fi
-
-MACHINE_TYPE=$(gpu_machine "$CHOSEN_GPU")
-ACCEL=$(gpu_accel "$CHOSEN_GPU")
-
-echo "Selected: $CHOSEN_GPU in $CHOSEN_REGION → $MACHINE_TYPE + $ACCEL"
-echo ""
-
-# Try all zones in the chosen region
 USED_ZONE=""
-for ZONE in "${CHOSEN_REGION}-a" "${CHOSEN_REGION}-b" "${CHOSEN_REGION}-c" "${CHOSEN_REGION}-d"; do
-  echo -n "Trying $ZONE ... "
+USED_MACHINE=""
+USED_ACCEL=""
+
+for candidate in "${CANDIDATES[@]}"; do
+  ZONE=$(echo "$candidate"    | cut -d: -f1)
+  MACHINE=$(echo "$candidate" | cut -d: -f2)
+  ACCEL=$(echo "$candidate"   | cut -d: -f3)
+
+  echo -n "Trying $ZONE  ($ACCEL) ... "
   if gcloud compute instances create "$VM_NAME" \
       --project="$PROJECT" \
       --zone="$ZONE" \
-      --machine-type="$MACHINE_TYPE" \
+      --machine-type="$MACHINE" \
       --accelerator="type=$ACCEL,count=1" \
       --maintenance-policy=TERMINATE \
       --restart-on-failure \
@@ -117,6 +64,8 @@ for ZONE in "${CHOSEN_REGION}-a" "${CHOSEN_REGION}-b" "${CHOSEN_REGION}-c" "${CH
       --metadata=install-nvidia-driver=True \
       --quiet 2>/dev/null; then
     USED_ZONE="$ZONE"
+    USED_MACHINE="$MACHINE"
+    USED_ACCEL="$ACCEL"
     echo "OK"
     break
   else
@@ -125,7 +74,9 @@ for ZONE in "${CHOSEN_REGION}-a" "${CHOSEN_REGION}-b" "${CHOSEN_REGION}-c" "${CH
 done
 
 if [ -z "$USED_ZONE" ]; then
-  echo "ERROR: Quota available but no zone had capacity. Try again shortly."
+  echo ""
+  echo "ERROR: No capacity found in any candidate zone."
+  echo "Try again later, or add more zones to CANDIDATES in gcp/create_vm.sh"
   exit 1
 fi
 
@@ -133,7 +84,7 @@ echo ""
 echo "============================================================"
 echo "  VM ready: $VM_NAME"
 echo "  Zone    : $USED_ZONE"
-echo "  GPU     : $ACCEL ($MACHINE_TYPE)"
+echo "  GPU     : $USED_ACCEL ($USED_MACHINE)"
 echo ""
 echo "  SSH in:"
 echo "    gcloud compute ssh $VM_NAME --zone=$USED_ZONE"
