@@ -90,7 +90,7 @@ fi
 # Parse host and port out of the ssh command
 # Format: ssh root@HOST -p PORT -i KEY  OR  ssh user@HOST -i KEY
 SSH_USER_HOST=$(echo "$SSH_CMD" | grep -oE '[A-Za-z0-9._-]+@[^ ]+' | head -1 || true)
-SSH_PORT=$(echo "$SSH_CMD" | grep -oP '(?<=-p )\d+' | head -1 || true)
+SSH_PORT=$(echo "$SSH_CMD" | grep -oE '\-p [0-9]+' | grep -oE '[0-9]+' | head -1 || true)
 
 if [ -z "$SSH_USER_HOST" ]; then
     echo "Could not parse SSH command: $SSH_CMD"
@@ -106,14 +106,15 @@ echo "SSH  : $SSH_USER_HOST${SSH_PORT:+ port $SSH_PORT}"
 echo "Dest : $LOCAL_DEST"
 echo ""
 
+SSH_BASE="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR"
 if [ -n "$SSH_PORT" ]; then
     rsync -avz --progress \
-        -e "ssh -p $SSH_PORT -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+        -e "ssh -p $SSH_PORT $SSH_BASE" \
         "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
         "$LOCAL_DEST/"
 else
     rsync -avz --progress \
-        -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+        -e "ssh $SSH_BASE" \
         "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
         "$LOCAL_DEST/"
 fi
