@@ -82,13 +82,23 @@ IFS='|' read -r POD_ID POD_NAME POD_GPU POD_COST SSH_CMD SSH_ERR <<< "${ROWS[$((
 if [ -z "$SSH_CMD" ]; then
     echo ""
     echo "SSH not ready for this pod yet ($SSH_ERR)."
-    echo "Get the SSH command from: runpod.io/console/pods → Connect"
+    echo "Get it from: runpod.io/console/pods → Connect → 'SSH over exposed TCP'"
+    echo "IMPORTANT: Use the 'root@IP -p PORT' format, NOT the ssh.runpod.io proxy URL"
     echo "Example: ssh root@213.173.x.x -p 12345 -i ~/.ssh/id_ed25519"
     read -rp "Paste the full SSH command: " SSH_CMD
 fi
 
+# Warn if user pasted the RunPod proxy URL (doesn't support rsync)
+if echo "$SSH_CMD" | grep -q "ssh.runpod.io"; then
+    echo ""
+    echo "ERROR: The ssh.runpod.io proxy URL doesn't support rsync (it injects a PTY banner)."
+    echo "In the RunPod Connect dialog, use the 'SSH over exposed TCP' option which gives:"
+    echo "  ssh root@<IP> -p <PORT> -i ~/.ssh/id_ed25519"
+    echo ""
+    read -rp "Paste the TCP SSH command: " SSH_CMD
+fi
+
 # Parse host and port out of the ssh command
-# Format: ssh root@HOST -p PORT -i KEY  OR  ssh user@HOST -i KEY
 SSH_USER_HOST=$(echo "$SSH_CMD" | grep -oE '[A-Za-z0-9._-]+@[^ ]+' | head -1 || true)
 SSH_PORT=$(echo "$SSH_CMD" | grep -oE '\-p [0-9]+' | grep -oE '[0-9]+' | head -1 || true)
 
