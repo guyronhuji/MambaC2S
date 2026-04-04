@@ -55,13 +55,22 @@ def _ssm_scan(
 # ---------------------------------------------------------------------------
 try:
     from mamba_ssm import Mamba as _MambaBlock  # type: ignore[import]
-    _MAMBA_SSM_AVAILABLE = True
-    logger.info("mamba_ssm package found — using hardware-optimised Mamba kernels.")
+    # Only use mamba_ssm kernels on CUDA — on MPS/CPU the package falls back to
+    # a pure-Python selective_scan_ref loop which is slower than our JIT-compiled
+    # SimpleMambaLM. Real hardware-accelerated kernels require NVIDIA CUDA.
+    _MAMBA_SSM_AVAILABLE = torch.cuda.is_available()
+    if _MAMBA_SSM_AVAILABLE:
+        logger.info("mamba_ssm package found + CUDA available — using hardware-optimised kernels.")
+    else:
+        logger.info(
+            "mamba_ssm package found but no CUDA — using JIT-compiled SimpleMambaLM "
+            "(faster than mamba_ssm's Python fallback on MPS/CPU)."
+        )
 except ImportError:
     _MAMBA_SSM_AVAILABLE = False
     logger.info(
         "mamba_ssm not installed — falling back to pure-PyTorch SSM implementation. "
-        "Install with: pip install mamba-ssm"
+        "Install with: pip install mamba-ssm (CUDA) or mamba-ssm-macos (Apple Silicon)."
     )
 
 
