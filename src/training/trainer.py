@@ -16,6 +16,8 @@ import math
 from pathlib import Path
 from typing import Any, Optional
 
+import sys
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
@@ -182,6 +184,7 @@ class Trainer:
             desc="Epochs",
             unit="epoch",
             dynamic_ncols=True,
+            file=sys.stderr,
         )
         for epoch in epoch_bar:
             train_loss = self._train_epoch()
@@ -209,6 +212,7 @@ class Trainer:
                 ppl=f"{val_ppl:.1f}",
                 best=f"e{best_epoch}",
                 marker="*" if improved else "",
+                refresh=False,
             )
 
             if not improved:
@@ -239,6 +243,7 @@ class Trainer:
             leave=False,
             unit="batch",
             dynamic_ncols=True,
+            file=sys.stderr,
         )
         for batch in batch_bar:
             input_ids = batch["input_ids"].to(self.device)
@@ -285,7 +290,7 @@ class Trainer:
             n = tgt_mask.sum().item()
             total_loss += loss.item() * n
             n_tokens += n
-            batch_bar.set_postfix(loss=f"{loss.item():.4f}")
+            batch_bar.set_postfix(loss=f"{loss.item():.4f}", refresh=False)
 
         return total_loss / max(n_tokens, 1)
 
