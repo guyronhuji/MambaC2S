@@ -33,10 +33,10 @@ echo "Querying RunPod for available GPUs ..."
 echo ""
 
 # Query the GraphQL API for real-time availability
-GPU_LIST=$(python3 - "$API_KEY" <<'PYEOF'
-import sys, json, ssl, urllib.request, urllib.error
+GPU_LIST=$(RUNPOD_API_KEY="$API_KEY" python3 - <<'PYEOF'
+import os, json, ssl, urllib.request, urllib.error
 
-api_key = sys.argv[1]
+api_key = os.environ["RUNPOD_API_KEY"]
 
 # Build SSL context — use certifi if available, otherwise skip verification
 try:
