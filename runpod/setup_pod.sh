@@ -3,36 +3,36 @@
 # One-time pod setup: clone repo and install dependencies
 # Run this INSIDE the RunPod pod.
 #
-# The RunPod PyTorch image already has CUDA + PyTorch installed,
-# so this is much faster than GCP/Azure setup (~2 min).
-#
 # Usage:
 #   bash <(curl -s https://raw.githubusercontent.com/guyronhuji/MambaC2S/main/runpod/setup_pod.sh)
 # ============================================================
 
 set -euo pipefail
 
-echo "=== [1/4] Install uv (fast package installer) ==="
-curl -LsSf https://astral.sh/uv/install.sh | sh
+echo "=== [1/4] Installing uv ==="
+curl -Lf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+echo "uv installed: $(uv --version)"
 
 echo ""
-echo "=== [2/4] Clone repo ==="
+echo "=== [2/4] Cloning repo ==="
 if [ ! -d /workspace/MambaC2S ]; then
     git clone https://github.com/guyronhuji/MambaC2S.git /workspace/MambaC2S
 else
-    echo "Repo already present — pulling latest ..."
+    echo "Already present — pulling latest ..."
     git -C /workspace/MambaC2S pull
 fi
 cd /workspace/MambaC2S
+echo "Repo ready at $(pwd)"
 
 echo ""
-echo "=== [3/4] Install dependencies ==="
-# PyTorch already installed in the image — skip it from requirements
-uv pip install --system PyCytoData anndata umap-learn scikit-learn matplotlib seaborn pyyaml tabulate
+echo "=== [3/4] Installing dependencies ==="
+uv pip install --system --verbose \
+    PyCytoData anndata umap-learn scikit-learn \
+    matplotlib seaborn pyyaml tabulate
 
 echo ""
-echo "=== [4/4] Verify GPU ==="
+echo "=== [4/4] Verifying GPU ==="
 python3 -c "
 import torch
 print('CUDA available :', torch.cuda.is_available())
@@ -42,7 +42,6 @@ if torch.cuda.is_available():
 print('PyTorch        :', torch.__version__)
 "
 
-# Persist working directory in .bashrc
 grep -q "cd /workspace/MambaC2S" ~/.bashrc 2>/dev/null || \
     echo "cd /workspace/MambaC2S" >> ~/.bashrc
 
