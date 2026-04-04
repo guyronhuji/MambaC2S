@@ -237,15 +237,7 @@ class Trainer:
         total_loss = 0.0
         n_tokens = 0
 
-        batch_bar = tqdm(
-            self.train_loader,
-            desc="  batches",
-            leave=False,
-            unit="batch",
-            dynamic_ncols=True,
-            file=sys.stderr,
-        )
-        for batch in batch_bar:
+        for batch in self.train_loader:
             input_ids = batch["input_ids"].to(self.device)
             attn_mask = batch["attention_mask"].to(self.device)
 
@@ -290,7 +282,6 @@ class Trainer:
             n = tgt_mask.sum().item()
             total_loss += loss.item() * n
             n_tokens += n
-            batch_bar.set_postfix(loss=f"{loss.item():.4f}", refresh=False)
 
         return total_loss / max(n_tokens, 1)
 
