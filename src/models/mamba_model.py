@@ -27,6 +27,29 @@ from src.models.base import BaseModel
 
 logger = logging.getLogger(__name__)
 
+@torch.jit.script
+def _ssm_scan(
+    x_act: torch.Tensor,   # (B, T, d_inner)
+    B_mat: torch.Tensor,   # (B, T, d_state)
+    C_mat: torch.Tensor,   # (B, T, d_state)
+    dt: torch.Tensor,      # (B, T, d_inner)
+    A: torch.Tensor,       # (d_inner, d_state)
+) -> torch.Tensor:         # (B, T, d_inner)
+    """ZOH-discretised selective state-space scan (TorchScript — no Python loop overhead)."""
+    B, T, d_inner = x_act.shape
+    d_state = A.shape[1]
+    h = torch.zeros(B, d_inner, d_state, device=x_act.device, dtype=x_act.dtype)
+    ys = torch.empty(B, T, d_inner, device=x_act.device, dtype=x_act.dtype)
+    for t in range(T):
+        dt_t = dt[:, t].unsqueeze(-1)                        # (B, d_inner, 1)
+        A_bar_t = torch.exp(A * dt_t)                        # (B, d_inner, d_state)
+        B_bar_t = B_mat[:, t].unsqueeze(1) * dt_t            # (B, d_inner, d_state)
+        u_t = x_act[:, t].unsqueeze(-1) * B_bar_t            # (B, d_inner, d_state)
+        h = A_bar_t * h + u_t                                # (B, d_inner, d_state)
+        ys[:, t, :] = (h * C_mat[:, t].unsqueeze(1)).sum(-1) # (B, d_inner)
+    return ys
+
+
 # ---------------------------------------------------------------------------
 # Try to import official mamba_ssm
 # ---------------------------------------------------------------------------
@@ -121,22 +144,11 @@ class _S6Layer(nn.Module):
         log_dt = bcdt[..., -1:]                                   # (B, T, 1)
         dt = F.softplus(self.dt_proj(log_dt))                    # (B, T, d_inner)
 
-        # Selective recurrence (ZOH discretization, computed per timestep to
-        # avoid pre-allocating (B, T, d_inner, d_state) which is ~32MB/layer):
+        # Selective recurrence via TorchScript scan (eliminates Python loop overhead).
         #   Ā_t = exp(A * dt_t),  B̄_t = B_mat_t * dt_t
         #   h_t  = Ā_t * h_{t-1} + B̄_t * x_t,  y_t = C_t · h_t
         A = -torch.exp(self.log_A)                               # (d_inner, d_state)
-        h = torch.zeros(B, self.d_inner, self.d_state, device=x.device, dtype=x.dtype)
-        ys = []
-        for t in range(T):
-            dt_t = dt[:, t].unsqueeze(-1)                        # (B, d_inner, 1)
-            A_bar_t = torch.exp(A * dt_t)                        # (B, d_inner, d_state)
-            B_bar_t = B_mat[:, t].unsqueeze(1) * dt_t            # (B, d_inner, d_state)
-            u_t = x_act[:, t].unsqueeze(-1) * B_bar_t            # (B, d_inner, d_state)
-            h = A_bar_t * h + u_t                                # (B, d_inner, d_state)
-            y_t = (h * C_mat[:, t].unsqueeze(1)).sum(-1)         # (B, d_inner)
-            ys.append(y_t)
-        y_ssm = torch.stack(ys, dim=1)                           # (B, T, d_inner)
+        y_ssm = _ssm_scan(x_act, B_mat, C_mat, dt, A)           # (B, T, d_inner)
 
         # Gate
         y_gated = y_ssm * F.silu(z)

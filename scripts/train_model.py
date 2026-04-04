@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import logging
+import pickle
 import sys
 from pathlib import Path
 from functools import partial
@@ -46,6 +48,20 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def _compute_cache_key(cfg: dict, manifest_path: Path) -> str:
+    """Hash the data/tokenization/preprocessing config + manifest for cache invalidation."""
+    h = hashlib.sha256()
+    payload = {
+        "dataset": cfg["dataset"],
+        "tokenization": cfg["tokenization"],
+        "preprocessing": cfg["preprocessing"],
+    }
+    h.update(json.dumps(payload, sort_keys=True).encode())
+    if manifest_path.exists():
+        h.update(manifest_path.read_bytes())
+    return h.hexdigest()[:16]
+
+
 def _make_exp_id(cfg: dict) -> str:
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     model_type = cfg["model"]["type"]
@@ -74,42 +90,62 @@ def main() -> None:
     save_config(cfg, output_dir / "config_resolved.yaml")
     log_environment(output_dir)
 
-    # Load data
+    # Load data (with caching to skip expensive reprocessing on repeated runs)
     data_dir = Path(cfg["dataset"]["data_dir"])
     dataset_name = cfg["dataset"]["dataset_name"]
     processed_path = data_dir / f"{dataset_name}_processed.h5ad"
     manifest_path = data_dir / "split_manifest.json"
 
-    logger.info("Loading data ...")
-    df = load_processed(processed_path)
-    splits = load_manifest(manifest_path)
-    split_dfs = apply_splits(df, splits)
+    cache_key = _compute_cache_key(cfg, manifest_path)
+    cache_dir = data_dir / ".cache" / cache_key
+    cache_train = cache_dir / "train_ids.pkl"
+    cache_val = cache_dir / "val_ids.pkl"
+    cache_vocab = cache_dir / "vocab.json"
 
-    train_df = split_dfs["train"]
-    val_df = split_dfs["val_self_supervised"]
-
-    # Tokenise
-    scheme = cfg["tokenization"]["scheme"]
-    prep = cfg["preprocessing"]
-    logger.info("Tokenising with scheme '%s' ...", scheme)
-    train_seqs = tokenize_dataframe(train_df, scheme=scheme, bins=prep["bins"])
-    val_seqs = tokenize_dataframe(val_df, scheme=scheme, bins=prep["bins"])
-
-    # Vocabulary
-    vocab_path = output_dir / "vocab.json"
-    if vocab_path.exists():
-        vocab = Vocabulary.load(vocab_path)
-        logger.info("Loaded existing vocab (%d tokens).", len(vocab))
+    if cache_train.exists() and cache_val.exists() and cache_vocab.exists():
+        logger.info("Cache hit (key=%s) — loading tokenised data from %s.", cache_key, cache_dir)
+        with open(cache_train, "rb") as f:
+            train_ids = pickle.load(f)
+        with open(cache_val, "rb") as f:
+            val_ids = pickle.load(f)
+        vocab = Vocabulary.load(cache_vocab)
+        logger.info("Loaded %d train / %d val sequences, vocab=%d tokens (from cache).",
+                    len(train_ids), len(val_ids), len(vocab))
     else:
+        logger.info("Cache miss (key=%s) — loading and tokenising data ...", cache_key)
+        df = load_processed(processed_path)
+        splits = load_manifest(manifest_path)
+        split_dfs = apply_splits(df, splits)
+
+        train_df = split_dfs["train"]
+        val_df = split_dfs["val_self_supervised"]
+
+        scheme = cfg["tokenization"]["scheme"]
+        prep = cfg["preprocessing"]
+        logger.info("Tokenising with scheme '%s' ...", scheme)
+        train_seqs = tokenize_dataframe(train_df, scheme=scheme, bins=prep["bins"])
+        val_seqs = tokenize_dataframe(val_df, scheme=scheme, bins=prep["bins"])
+
         vocab = Vocabulary()
         vocab.build(train_seqs)
-        vocab.save(vocab_path)
         logger.info("Vocabulary built: %d tokens.", len(vocab))
 
-    train_ids = [vocab.encode(s) for s in train_seqs]
-    val_ids = [vocab.encode(s) for s in val_seqs]
+        train_ids = [vocab.encode(s) for s in train_seqs]
+        val_ids = [vocab.encode(s) for s in val_seqs]
 
-    # Copy manifest to output
+        # Save to cache
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        with open(cache_train, "wb") as f:
+            pickle.dump(train_ids, f)
+        with open(cache_val, "wb") as f:
+            pickle.dump(val_ids, f)
+        vocab.save(cache_vocab)
+        logger.info("Tokenised data cached to %s.", cache_dir)
+
+    # Save vocab to experiment output dir and copy manifest
+    vocab_path = output_dir / "vocab.json"
+    vocab.save(vocab_path)
+
     import shutil
     shutil.copy(manifest_path, output_dir / "split_manifest.json")
 

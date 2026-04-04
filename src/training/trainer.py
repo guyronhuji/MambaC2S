@@ -234,8 +234,8 @@ class Trainer:
 
     def _train_epoch(self) -> float:
         self.model.train()
-        total_loss = 0.0
-        n_tokens = 0
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_tokens = torch.tensor(0, device=self.device)
 
         for batch in self.train_loader:
             input_ids = batch["input_ids"].to(self.device)
@@ -279,17 +279,17 @@ class Trainer:
                     nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
                 self.optimiser.step()
 
-            n = tgt_mask.sum().item()
-            total_loss += loss.item() * n
-            n_tokens += n
+            n = tgt_mask.sum()
+            total_loss = total_loss + loss.detach() * n
+            n_tokens = n_tokens + n
 
-        return total_loss / max(n_tokens, 1)
+        return (total_loss / n_tokens.clamp(min=1)).item()
 
     @torch.no_grad()
     def _val_epoch(self) -> tuple[float, float]:
         self.model.eval()
-        total_loss = 0.0
-        n_tokens = 0
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_tokens = torch.tensor(0, device=self.device)
 
         for batch in self.val_loader:
             input_ids = batch["input_ids"].to(self.device)
@@ -303,11 +303,11 @@ class Trainer:
             logits = self.model(src, attention_mask=src_mask)
             loss = self._compute_loss(logits, tgt, tgt_mask)
 
-            n = tgt_mask.sum().item()
-            total_loss += loss.item() * n
-            n_tokens += n
+            n = tgt_mask.sum()
+            total_loss = total_loss + loss.detach() * n
+            n_tokens = n_tokens + n
 
-        avg_loss = total_loss / max(n_tokens, 1)
+        avg_loss = (total_loss / n_tokens.clamp(min=1)).item()
         perplexity = math.exp(min(avg_loss, 100))  # cap to avoid overflow
         return avg_loss, perplexity
 

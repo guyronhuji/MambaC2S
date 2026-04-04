@@ -32,6 +32,17 @@ uv pip install --system --verbose \
     matplotlib seaborn pyyaml tabulate rich
 
 echo ""
+echo "=== [3b/4] Installing mamba-ssm (CUDA kernels) ==="
+# mamba-ssm requires CUDA and builds C++/CUDA extensions at install time.
+# This gives ~10-20x speedup over the pure-PyTorch fallback on GPU.
+if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+    uv pip install --system mamba-ssm causal-conv1d || \
+        echo "WARNING: mamba-ssm install failed — will use pure-PyTorch fallback."
+else
+    echo "No CUDA — skipping mamba-ssm (pure-PyTorch fallback will be used)."
+fi
+
+echo ""
 echo "=== [4/4] Verifying GPU ==="
 python3 -c "
 import torch
@@ -40,6 +51,10 @@ if torch.cuda.is_available():
     print('GPU            :', torch.cuda.get_device_name(0))
     print('VRAM           :', round(torch.cuda.get_device_properties(0).total_memory / 1e9, 1), 'GB')
 print('PyTorch        :', torch.__version__)
+try:
+    import mamba_ssm; print('mamba-ssm      : installed ✓')
+except ImportError:
+    print('mamba-ssm      : NOT installed (pure-PyTorch fallback)')
 "
 
 grep -q "cd /workspace/MambaC2S" ~/.bashrc 2>/dev/null || \
