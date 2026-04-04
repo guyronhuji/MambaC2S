@@ -168,7 +168,7 @@ def compute_embedding_metrics(
     for i, nbrs in enumerate(indices):
         nbr_labels = labels_int[nbrs]
         majority = np.bincount(nbr_labels).argmax()
-        purities.append(float(nbr_labels == majority).mean())
+        purities.append(float((nbr_labels == majority).mean()))
     knn_purity = float(np.mean(purities))
 
     logger.info(
