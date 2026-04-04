@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # Create a RunPod GPU pod for MambaC2S training
-# Shows available GPUs with prices and lets you choose.
+# Queries the RunPod API for real-time GPU availability.
 #
 # Prerequisites (one-time):
 #   1. brew install runpod/runpodctl/runpodctl
@@ -19,101 +19,128 @@ POD_NAME="mambac2s"
 IMAGE="runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04"
 DISK_GB=50
 
-# Auto-configure from .runpodkey if present
+# Load API key
 KEYFILE="$(dirname "$0")/../.runpodkey"
 if [ -f "$KEYFILE" ]; then
   API_KEY=$(awk '{print $2}' "$KEYFILE")
   mkdir -p ~/.runpod
   printf "apiKey: %s\napiUrl: https://api.runpod.io/graphql\n" "$API_KEY" > ~/.runpod/.runpod.yaml
+else
+  API_KEY=""
 fi
 
-echo "Fetching available GPUs ..."
+echo "Querying RunPod for available GPUs ..."
 echo ""
 
-# Get cloud list, skip header, skip "Reserved" rows, clean up multi-line names
-RAW=$(runpodctl get cloud 2>/dev/null | tail -n +2 | grep -v "^$" | grep -v "Reserved")
+# Query the GraphQL API for real-time availability
+GPU_LIST=$(python3 - "$API_KEY" <<'PYEOF'
+import sys, json, urllib.request, urllib.error
 
-# Parse into arrays using Python for robustness
-GPU_LIST=$(python3 - <<'PYEOF'
-import sys, re
+api_key = sys.argv[1]
 
-lines = """$RAW""".strip().split("\n")
+query = """
+query {
+  gpuTypes {
+    id
+    displayName
+    memoryInGb
+    lowestPrice(input: {gpuCount: 1}) {
+      minimumBidPrice
+      uninterruptablePrice
+      stockStatus
+    }
+  }
+}
+"""
 
-gpus = []
-for line in lines:
-    # tab-separated: GPU TYPE  MEM GB  VCPU  SPOT $/HR  ONDEMAND $/HR
-    parts = re.split(r'\t', line.strip())
-    if len(parts) >= 5:
-        name  = parts[0].strip()
-        mem   = parts[1].strip()
-        vcpu  = parts[2].strip()
-        spot  = parts[3].strip()
-        od    = parts[4].strip()
-        if name and mem and od and od != "Reserved":
-            gpus.append(f"{name}|{mem}|{vcpu}|{spot}|{od}")
+url = f"https://api.runpod.io/graphql?api_key={api_key}"
+req = urllib.request.Request(
+    url,
+    data=json.dumps({"query": query}).encode(),
+    headers={"Content-Type": "application/json"},
+)
 
+try:
+    with urllib.request.urlopen(req, timeout=15) as r:
+        data = json.load(r)
+except urllib.error.URLError as e:
+    print(f"ERROR: {e}", file=sys.stderr)
+    sys.exit(1)
+
+gpus = data.get("data", {}).get("gpuTypes", [])
+
+# Filter to GPUs with actual stock
+available = []
 for g in gpus:
-    print(g)
+    lp = g.get("lowestPrice") or {}
+    stock = lp.get("stockStatus") or ""
+    spot  = lp.get("minimumBidPrice")
+    od    = lp.get("uninterruptablePrice")
+    if stock.lower() in ("high", "medium", "low") and od:
+        available.append({
+            "id":    g["id"],
+            "name":  g["displayName"],
+            "vram":  g.get("memoryInGb", "?"),
+            "spot":  f"${spot:.2f}" if spot else "-",
+            "od":    f"${od:.2f}",
+            "stock": stock,
+        })
+
+# Sort by on-demand price
+available.sort(key=lambda x: float(x["od"].strip("$")))
+print(json.dumps(available))
 PYEOF
 )
 
-# Fallback: use awk if python approach fails
-if [ -z "$GPU_LIST" ]; then
-  GPU_LIST=$(runpodctl get cloud 2>/dev/null \
-    | tail -n +2 \
-    | grep -v "^$" \
-    | grep -v "Reserved" \
-    | awk 'NF>=5 {
-        name=""; for(i=1;i<=NF-4;i++) name=name" "$i;
-        gsub(/^ /,"",name);
-        printf "%s|%s|%s|%s|%s\n", name, $(NF-3), $(NF-2), $(NF-1), $NF
-      }')
-fi
-
-# Build indexed arrays
-declare -a GPU_NAMES GPU_MEM GPU_VCPU GPU_SPOT GPU_OD
-i=0
-while IFS='|' read -r name mem vcpu spot od; do
-  [ -z "$name" ] && continue
-  GPU_NAMES[$i]="$name"
-  GPU_MEM[$i]="$mem"
-  GPU_VCPU[$i]="$vcpu"
-  GPU_SPOT[$i]="$spot"
-  GPU_OD[$i]="$od"
-  i=$((i+1))
-done <<< "$GPU_LIST"
-
-if [ ${#GPU_NAMES[@]} -eq 0 ]; then
-  echo "ERROR: Could not fetch GPU list. Check your API key."
+if [ -z "$GPU_LIST" ] || [ "$GPU_LIST" = "[]" ]; then
+  echo "No GPUs available right now. Try again shortly."
   exit 1
 fi
 
-# Display table
-printf "\n%-4s %-34s %8s %6s %12s %14s\n" "№" "GPU" "VRAM(GB)" "vCPU" "SPOT \$/hr" "ON-DEMAND \$/hr"
-printf "%-4s %-34s %8s %6s %12s %14s\n" "---" "---------------------------------" "--------" "------" "----------" "--------------"
-for j in "${!GPU_NAMES[@]}"; do
-  printf "%-4s %-34s %8s %6s %12s %14s\n" \
-    "$((j+1))" "${GPU_NAMES[$j]}" "${GPU_MEM[$j]}" "${GPU_VCPU[$j]}" "${GPU_SPOT[$j]}" "${GPU_OD[$j]}"
-done
+# Display table and build selection arrays
+eval "$(python3 - "$GPU_LIST" <<'PYEOF'
+import sys, json
+
+gpus = json.loads(sys.argv[1])
+
+STOCK_ICON = {"High": "●●●", "Medium": "●●○", "Low": "●○○"}
+
+print(f'printf "\\n%-4s %-34s %8s %10s %14s %8s\\n" "№" "GPU" "VRAM(GB)" "SPOT \\$/hr" "ON-DEMAND \\$/hr" "STOCK"')
+print(f'printf "%-4s %-34s %8s %10s %14s %8s\\n" "---" "---------------------------------" "--------" "----------" "--------------" "-----"')
+
+names = []
+for i, g in enumerate(gpus):
+    icon = STOCK_ICON.get(g["stock"], "?")
+    print(f'printf "%-4s %-34s %8s %10s %14s %8s\\n" "{i+1}" "{g["name"]}" "{g["vram"]}" "{g["spot"]}" "{g["od"]}" "{icon}"')
+    names.append(g["id"])
+
+# Export arrays for bash
+ids_str = " ".join(f'"{g["id"]}"' for g in gpus)
+names_str = " ".join(f'"{g["name"]}"' for g in gpus)
+print(f'GPU_IDS=({ids_str})')
+print(f'GPU_NAMES=({names_str})')
+print(f'TOTAL={len(gpus)}')
+PYEOF
+)"
 
 echo ""
-read -p "Choose GPU number (1-${#GPU_NAMES[@]}): " CHOICE
+read -rp "Choose GPU number (1-${TOTAL}): " CHOICE
 
-if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -lt 1 ] || [ "$CHOICE" -gt ${#GPU_NAMES[@]} ]; then
+if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -lt 1 ] || [ "$CHOICE" -gt "$TOTAL" ]; then
   echo "Invalid choice."
   exit 1
 fi
 
 IDX=$((CHOICE-1))
-SELECTED="${GPU_NAMES[$IDX]}"
+SELECTED_ID="${GPU_IDS[$IDX]}"
+SELECTED_NAME="${GPU_NAMES[$IDX]}"
 
 echo ""
-echo "Selected: $SELECTED  (on-demand: \$${GPU_OD[$IDX]}/hr)"
-echo "Creating pod ..."
+echo "Creating pod with: $SELECTED_NAME"
 
 OUTPUT=$(runpodctl create pod \
   --name "$POD_NAME" \
-  --gpuType "$SELECTED" \
+  --gpuType "$SELECTED_NAME" \
   --imageName "$IMAGE" \
   --containerDiskSize "$DISK_GB" \
   --volumeSize 5 \
@@ -125,8 +152,8 @@ OUTPUT=$(runpodctl create pod \
   echo ""
   echo "============================================================"
   echo "  Pod created!"
-  echo "  GPU     : $SELECTED"
-  [ -n "$POD_ID" ] && echo "  Pod ID  : $POD_ID"
+  echo "  GPU    : $SELECTED_NAME"
+  [ -n "$POD_ID" ] && echo "  Pod ID : $POD_ID"
   echo ""
   echo "  Wait ~60s, then get your SSH command from:"
   echo "    https://www.runpod.io/console/pods"
@@ -139,7 +166,6 @@ OUTPUT=$(runpodctl create pod \
   [ -n "$POD_ID" ] && echo "    runpodctl stop pod $POD_ID" || echo "    runpodctl pod list  →  stop by ID"
   echo "============================================================"
 } || {
-  echo ""
   echo "ERROR: $OUTPUT"
   exit 1
 }
