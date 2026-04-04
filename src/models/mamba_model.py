@@ -116,28 +116,30 @@ class _S6Layer(nn.Module):
 
         # Selective SSM parameters per token
         bcdt = self.x_proj(x_act)  # (B, T, 2*d_state + 1)
-        B_mat = bcdt[..., : self.d_state]       # (B, T, d_state)
-        C_mat = bcdt[..., self.d_state: 2 * self.d_state]
-        log_dt = bcdt[..., -1:]                  # (B, T, 1)
-        dt = F.softplus(self.dt_proj(log_dt))    # (B, T, d_inner)
+        B_mat = bcdt[..., : self.d_state]                        # (B, T, d_state)
+        C_mat = bcdt[..., self.d_state: 2 * self.d_state]        # (B, T, d_state)
+        log_dt = bcdt[..., -1:]                                   # (B, T, 1)
+        dt = F.softplus(self.dt_proj(log_dt))                    # (B, T, d_inner)
 
-        # Discretise A: Ā = exp(-exp(log_A) * dt)
-        # Shape: (d_inner, d_state) → broadcast with (B, T, d_inner, 1)
-        A = -torch.exp(self.log_A)  # (d_inner, d_state)
+        # Discretise A with zero-order hold (input-dependent step size):
+        #   Ā_t = exp(A * dt_t)   shape: (B, T, d_inner, d_state)
+        #   B̄_t = B_mat_t * dt_t  shape: (B, T, d_inner, d_state)
+        A = -torch.exp(self.log_A)                               # (d_inner, d_state)
+        dt_ = dt.unsqueeze(-1)                                   # (B, T, d_inner, 1)
+        A_bar = torch.exp(A * dt_)                               # (B, T, d_inner, d_state)
+        B_bar = B_mat.unsqueeze(2) * dt_                         # (B, T, d_inner, d_state)
 
-        # Simple parallel approximation: weighted sum of x_act over time
-        # using a causal cumsum with learned decay (fast, differentiable)
-        # Full selective scan would require associative scan; this is a
-        # tractable approximation that preserves causal order.
-        decay = torch.exp(A.mean(-1))  # (d_inner,) — global decay per channel
-        # Causal exponential running average (approximates SSM output)
-        # y_t = decay * y_{t-1} + (1 - decay) * x_act_t
+        # Selective recurrence: h_t = Ā_t * h_{t-1} + B̄_t * x_t
+        #                        y_t = C_t · h_t
+        # T=32 for CyTOF sequences so the Python loop is negligible.
+        h = torch.zeros(B, self.d_inner, self.d_state, device=x.device, dtype=x.dtype)
         ys = []
-        h = torch.zeros(B, self.d_inner, device=x.device, dtype=x.dtype)
         for t in range(T):
-            h = decay * h + (1 - decay) * x_act[:, t, :]
-            ys.append(h)
-        y_ssm = torch.stack(ys, dim=1)  # (B, T, d_inner)
+            u_t = x_act[:, t, :].unsqueeze(-1) * B_bar[:, t]    # (B, d_inner, d_state)
+            h = A_bar[:, t] * h + u_t                            # (B, d_inner, d_state)
+            y_t = (h * C_mat[:, t].unsqueeze(1)).sum(-1)         # (B, d_inner)
+            ys.append(y_t)
+        y_ssm = torch.stack(ys, dim=1)                           # (B, T, d_inner)
 
         # Gate
         y_gated = y_ssm * F.silu(z)

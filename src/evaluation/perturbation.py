@@ -132,24 +132,19 @@ def run_perturbation_analysis(
         if len(orig_seq) < 3:
             continue
 
-        # Baseline embedding
-        orig_tensor = torch.tensor([orig_seq], dtype=torch.long, device=device)
-        orig_emb = model.encode(orig_tensor, pooling=pooling).cpu().numpy()[0]
-
-        cell_distances: list[float] = []
+        # Generate all perturbations first, then encode in one batched forward pass
+        perturbed_seqs: list[list[int]] = []
         for _ in range(n_perturbations_per_cell):
             perturb_type = rng.choice(["swap", "strength"])
             perturbed_seq: Optional[list[int]] = None
 
             if perturb_type == "swap":
-                # Swap two random adjacent positions (skip BOS/EOS)
                 positions = list(range(1, len(orig_seq) - 1))
                 if len(positions) >= 2:
                     a, b = rng.sample(positions, 2)
                     perturbed_seq = _swap_two_tokens(orig_seq, a, b)
 
             elif perturb_type == "strength":
-                # Shift one random token's strength bin
                 positions = list(range(1, len(orig_seq) - 1))
                 rng.shuffle(positions)
                 for pos in positions:
@@ -159,14 +154,23 @@ def run_perturbation_analysis(
                         perturbed_seq[pos] = new_id
                         break
 
-            if perturbed_seq is None:
-                continue
+            if perturbed_seq is not None:
+                perturbed_seqs.append(perturbed_seq)
 
-            pert_tensor = torch.tensor([perturbed_seq], dtype=torch.long, device=device)
-            pert_emb = model.encode(pert_tensor, pooling=pooling).cpu().numpy()[0]
-            dist = _cosine_distance(orig_emb, pert_emb)
-            cell_distances.append(dist)
-            all_distances.append(dist)
+        if not perturbed_seqs:
+            continue
+
+        # Batch encode: [orig] + all perturbations in a single forward pass
+        all_seqs = [orig_seq] + perturbed_seqs
+        batch_tensor = torch.tensor(all_seqs, dtype=torch.long, device=device)
+        with torch.no_grad():
+            embs = model.encode(batch_tensor, pooling=pooling).cpu().numpy()
+
+        orig_emb = embs[0]
+        cell_distances: list[float] = [
+            _cosine_distance(orig_emb, embs[i + 1]) for i in range(len(perturbed_seqs))
+        ]
+        all_distances.extend(cell_distances)
 
         per_cell_results.append({
             "cell_idx": cell_idx,

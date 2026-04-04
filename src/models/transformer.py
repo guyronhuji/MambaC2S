@@ -84,6 +84,7 @@ class TransformerLM(BaseModel):
     ) -> None:
         super().__init__(vocab_size=vocab_size, d_model=d_model, max_seq_len=max_seq_len)
 
+        self._causal_mask_cache: dict = {}
         self.n_layers = n_layers
         self.nhead = nhead
         self.dropout_rate = dropout
@@ -133,14 +134,13 @@ class TransformerLM(BaseModel):
                     module.weight.data[module.padding_idx].zero_()
 
     def _make_causal_mask(self, seq_len: int, device: torch.device) -> torch.Tensor:
-        """Create an upper-triangular causal mask.
-
-        Returns:
-            Boolean mask of shape ``(seq_len, seq_len)`` where
-            ``True`` means the position is masked (not attended to).
-        """
-        mask = torch.triu(torch.ones(seq_len, seq_len, device=device), diagonal=1).bool()
-        return mask
+        """Return a cached upper-triangular causal mask (seq_len, seq_len)."""
+        key = (seq_len, str(device))
+        if key not in self._causal_mask_cache:
+            self._causal_mask_cache[key] = torch.triu(
+                torch.ones(seq_len, seq_len, device=device), diagonal=1
+            ).bool()
+        return self._causal_mask_cache[key]
 
     def forward(
         self,

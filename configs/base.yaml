@@ -45,7 +45,7 @@ training:
   max_epochs: 100
   patience: 10
   grad_clip: 1.0
-  mixed_precision: false
+  mixed_precision: true
 
 evaluation:
   knn_k: 15

@@ -54,13 +54,9 @@ class CellSequenceDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         seq = self.sequences[idx]
-        length = len(seq)
-        pad_len = self.max_len - length
-        padded = seq + [self.pad_id] * pad_len
-        mask = [True] * length + [False] * pad_len
         return {
-            "input_ids": torch.tensor(padded, dtype=torch.long),
-            "attention_mask": torch.tensor(mask, dtype=torch.bool),
+            "input_ids": torch.tensor(seq, dtype=torch.long),
+            "attention_mask": torch.ones(len(seq), dtype=torch.bool),
         }
 
     @staticmethod
@@ -310,15 +306,12 @@ class Trainer:
     ) -> torch.Tensor:
         """Cross-entropy loss, ignoring padding positions."""
         B, T, V = logits.shape
-        loss = nn.functional.cross_entropy(
+        return nn.functional.cross_entropy(
             logits.reshape(B * T, V),
             targets.reshape(B * T),
             ignore_index=self.pad_id,
-            reduction="none",
+            reduction="mean",
         )
-        # Average only over non-padding tokens
-        mask_flat = mask.reshape(B * T).float()
-        return (loss * mask_flat).sum() / mask_flat.sum().clamp(min=1)
 
     def _save_checkpoint(self, epoch: int) -> None:
         state = {
