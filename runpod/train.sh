@@ -12,6 +12,17 @@ set -euo pipefail
 
 cd /workspace/MambaC2S
 
+# Prepare data and splits if not already done
+if [ ! -f data/levine32_processed.h5ad ]; then
+    echo "Processed data not found — running prepare_data.py ..."
+    python scripts/prepare_data.py
+fi
+
+if [ ! -f data/split_manifest.json ]; then
+    echo "Split manifest not found — running make_splits.py ..."
+    python scripts/make_splits.py
+fi
+
 LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
