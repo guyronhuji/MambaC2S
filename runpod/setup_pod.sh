@@ -33,24 +33,18 @@ uv pip install --system --verbose \
 
 echo ""
 echo "=== [3b/4] Installing mamba-ssm (CUDA kernels) ==="
-# mamba-ssm compiles C++/CUDA extensions at install time — must use pip, not uv.
-# PyTorch and the system CUDA toolkit must match versions; reinstall if they don't.
-if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
-    SYS_CUDA=$(nvcc --version 2>/dev/null | grep -oE 'release [0-9]+\.[0-9]+' | awk '{print $2}')
-    TORCH_CUDA=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
-    echo "System CUDA: ${SYS_CUDA}   PyTorch CUDA: ${TORCH_CUDA}"
-
-    if [ -n "$SYS_CUDA" ] && [ "$SYS_CUDA" != "$TORCH_CUDA" ]; then
-        echo "Version mismatch — reinstalling PyTorch for CUDA ${SYS_CUDA} ..."
-        # Convert e.g. "12.1" -> "cu121"
-        CU_TAG="cu$(echo "$SYS_CUDA" | tr -d '.')"
-        pip install --upgrade torch torchvision torchaudio \
-            --index-url "https://download.pytorch.org/whl/${CU_TAG}"
-    fi
-
+# mamba-ssm compiles C++/CUDA extensions — must use pip (not uv) and PyTorch
+# must match the system CUDA toolkit. Force-reinstall PyTorch for cu121 first.
+if nvcc --version &>/dev/null; then
+    SYS_CUDA=$(nvcc --version | grep -oE 'release [0-9]+\.[0-9]+' | awk '{print $2}')
+    CU_TAG="cu$(echo "$SYS_CUDA" | tr -d '.')"
+    echo "System CUDA: ${SYS_CUDA} → installing PyTorch for ${CU_TAG}"
+    pip install --force-reinstall torch torchvision torchaudio \
+        --index-url "https://download.pytorch.org/whl/${CU_TAG}"
+    echo "PyTorch CUDA after reinstall: $(python3 -c 'import torch; print(torch.version.cuda)')"
     pip install causal-conv1d mamba-ssm
 else
-    echo "No CUDA — skipping mamba-ssm (pure-PyTorch fallback will be used)."
+    echo "nvcc not found — skipping mamba-ssm (pure-PyTorch fallback will be used)."
 fi
 
 echo ""
