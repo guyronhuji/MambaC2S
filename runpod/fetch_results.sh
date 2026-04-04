@@ -105,47 +105,42 @@ echo "SSH  : $SSH_USER_HOST${SSH_PORT:+ port $SSH_PORT}"
 echo "Dest : $LOCAL_DEST"
 echo ""
 
-SSH_KEY="$HOME/.ssh/id_ed25519"
-# -tt forces PTY allocation — required by RunPod's ssh.runpod.io proxy
-SSH_OPTS="-tt -i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR"
-[ -n "$SSH_PORT" ] && SSH_OPTS="-p $SSH_PORT $SSH_OPTS"
-
-# ── Strategy: RunPod community cloud SSH proxy blocks rsync/scp. ─
-# Instead: SSH (-tt for proxy compat) to create a tar.gz, serve it via
-# Python HTTP, download through RunPod's proxy URL, extract locally.
 HTTP_PORT=8765
-
-echo "Creating archive on pod ..."
-ssh $SSH_OPTS "$SSH_USER_HOST" \
-  "cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/ 2>/dev/null; \
-   pkill -f 'http.server $HTTP_PORT' 2>/dev/null; \
-   nohup python3 -m http.server $HTTP_PORT --directory /tmp >/tmp/http.log 2>&1 & \
-   sleep 1 && echo READY" 2>/dev/null || true
-
-echo "Waiting for HTTP server to start ..."
-sleep 4
-
 DOWNLOAD_URL="https://${POD_ID}-${HTTP_PORT}.proxy.runpod.net/runpod_outputs.tar.gz"
 TMP_TAR="/tmp/runpod_outputs_$$.tar.gz"
 
+# ── RunPod community cloud SSH proxy always opens an interactive shell. ──
+# We can't run commands through it programmatically. Instead, we print
+# the commands for the user to paste into their pod terminal, then download
+# the result via RunPod's HTTP proxy URL.
+echo ""
+echo "============================================================"
+echo "  RunPod's SSH proxy only supports interactive sessions."
+echo "  Paste these two commands into your pod terminal:"
+echo ""
+echo "    cd /workspace/MambaC2S && tar czf /tmp/runpod_outputs.tar.gz outputs/"
+echo "    nohup python3 -m http.server $HTTP_PORT --directory /tmp &"
+echo ""
+echo "  Then come back here and press Enter."
+echo "============================================================"
+echo ""
+read -rp "Press Enter when done (HTTP server is running on pod) ..."
+
+echo ""
 echo "Downloading from: $DOWNLOAD_URL"
 if ! curl -fL --progress-bar -o "$TMP_TAR" "$DOWNLOAD_URL"; then
     echo ""
-    echo "ERROR: Download failed. Possible causes:"
-    echo "  1. Pod isn't ready yet (wait ~30s and retry)"
-    echo "  2. Port $HTTP_PORT is firewalled — try restarting and adding port $HTTP_PORT/http in pod settings"
-    echo "  3. The archive creation failed — SSH into the pod and check /tmp/runpod_outputs.tar.gz"
+    echo "ERROR: Download failed."
+    echo "  - Make sure port $HTTP_PORT is exposed in pod settings (Stop → Edit → add $HTTP_PORT/http → Start)"
+    echo "  - Or check that /tmp/runpod_outputs.tar.gz exists on the pod"
     rm -f "$TMP_TAR"
     exit 1
 fi
 
 echo "Extracting ..."
-tar xzf "$TMP_TAR" --strip-components=0 -C "$LOCAL_DEST" 2>/dev/null || \
-  tar xzf "$TMP_TAR" -C "$LOCAL_DEST"
+tar xzf "$TMP_TAR" -C "$LOCAL_DEST"
 rm -f "$TMP_TAR"
-
-# Kill the HTTP server on the pod (best-effort)
-ssh $SSH_OPTS "$SSH_USER_HOST" "pkill -f 'http.server $HTTP_PORT' 2>/dev/null || true" 2>/dev/null || true
 
 echo ""
 echo "Done — results saved to $LOCAL_DEST"
+echo "You can stop the HTTP server on the pod with:  kill %1"
