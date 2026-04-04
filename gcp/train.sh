@@ -29,9 +29,8 @@ for model in "${models[@]}"; do
         echo "  Training: $model / $scheme"
         echo "──────────────────────────────────────"
         python scripts/train_model.py \
-            --model "$model" \
-            --scheme "$scheme" \
-            --mixed-precision \
+            --config "configs/${model}.yaml" \
+            --override "tokenization.scheme=${scheme}" "training.mixed_precision=true" \
             2>&1 | tee "$LOG_DIR/${model}_${scheme}.log"
         echo ""
     done

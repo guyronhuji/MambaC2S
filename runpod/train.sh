@@ -15,22 +15,18 @@ cd /workspace/MambaC2S
 LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
-models=(transformer mamba)
-schemes=(rank_only strength_only hybrid)
-
 echo "Starting experiment matrix — $(date)"
 echo "Logs → $LOG_DIR"
 echo ""
 
-for model in "${models[@]}"; do
-    for scheme in "${schemes[@]}"; do
+for model in transformer mamba; do
+    for scheme in rank_only strength_only hybrid; do
         echo "──────────────────────────────────────"
         echo "  Training: $model / $scheme"
         echo "──────────────────────────────────────"
         python scripts/train_model.py \
-            --model "$model" \
-            --scheme "$scheme" \
-            --mixed-precision \
+            --config "configs/${model}.yaml" \
+            --override "tokenization.scheme=${scheme}" "training.mixed_precision=true" \
             2>&1 | tee "$LOG_DIR/${model}_${scheme}.log"
         echo ""
     done
