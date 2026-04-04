@@ -22,14 +22,7 @@ if [ ! -f data/split_manifest.json ]; then
     python scripts/make_splits.py
 fi
 
-# Resume the most recent run dir if it has done/failed jobs; else start fresh
-PREV_DIR=$(ls -dt outputs/runpod_run_* 2>/dev/null | head -1 || true)
-if [ -n "$PREV_DIR" ] && ls "$PREV_DIR"/*.status 2>/dev/null | xargs grep -ql "done\|failed" 2>/dev/null; then
-    LOG_DIR="$PREV_DIR"
-    echo "Resuming previous run: $LOG_DIR"
-else
-    LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
-fi
+LOG_DIR="outputs/runpod_run_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOG_DIR"
 
 echo "Experiment matrix — $(date)"
@@ -38,30 +31,13 @@ echo "Logs → $LOG_DIR"
 echo ""
 
 ALL_JOBS=()
+JOBS=()
 for model in transformer mamba; do
     for scheme in rank_only strength_only hybrid; do
         ALL_JOBS+=("${model}|${scheme}")
+        JOBS+=("${model}|${scheme}")
     done
 done
-
-# Skip jobs already completed or failed
-JOBS=()
-for job in "${ALL_JOBS[@]}"; do
-    model="${job%%|*}"
-    scheme="${job##*|}"
-    statusfile="$LOG_DIR/${model}_${scheme}.status"
-    if [ -f "$statusfile" ] && grep -q "done" "$statusfile"; then
-        echo "  skipping ${model}/${scheme} (already done)"
-    else
-        JOBS+=("$job")
-    fi
-done
-
-if [ ${#JOBS[@]} -eq 0 ]; then
-    echo "All experiments already completed."
-    exit 0
-fi
-echo ""
 
 # ── Job runner (runs in background) ─────────────────────────
 run_job() {
