@@ -122,11 +122,21 @@ def main() -> None:
 
     collate = partial(CellSequenceDataset.collate_fn, pad_id=pad_id)
     bs = cfg["training"]["batch_size"]
-    nw = cfg["training"].get("num_workers", 0)
+
+    # num_workers > 0 causes fork issues on macOS (MPS); pin_memory only helps CUDA
+    device_type = cfg["training"].get("device", "auto")
+    if device_type == "auto":
+        import torch as _torch
+        device_type = "cuda" if _torch.cuda.is_available() else (
+            "mps" if _torch.backends.mps.is_available() else "cpu"
+        )
+    is_cuda = device_type == "cuda"
+    nw = cfg["training"].get("num_workers", 0) if is_cuda else 0
+
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True,
-                              collate_fn=collate, num_workers=nw, pin_memory=True)
+                              collate_fn=collate, num_workers=nw, pin_memory=is_cuda)
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False,
-                            collate_fn=collate, num_workers=nw, pin_memory=True)
+                            collate_fn=collate, num_workers=nw, pin_memory=is_cuda)
 
     # Build model
     model_cfg = cfg["model"]

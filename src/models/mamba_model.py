@@ -121,22 +121,19 @@ class _S6Layer(nn.Module):
         log_dt = bcdt[..., -1:]                                   # (B, T, 1)
         dt = F.softplus(self.dt_proj(log_dt))                    # (B, T, d_inner)
 
-        # Discretise A with zero-order hold (input-dependent step size):
-        #   Ā_t = exp(A * dt_t)   shape: (B, T, d_inner, d_state)
-        #   B̄_t = B_mat_t * dt_t  shape: (B, T, d_inner, d_state)
+        # Selective recurrence (ZOH discretization, computed per timestep to
+        # avoid pre-allocating (B, T, d_inner, d_state) which is ~32MB/layer):
+        #   Ā_t = exp(A * dt_t),  B̄_t = B_mat_t * dt_t
+        #   h_t  = Ā_t * h_{t-1} + B̄_t * x_t,  y_t = C_t · h_t
         A = -torch.exp(self.log_A)                               # (d_inner, d_state)
-        dt_ = dt.unsqueeze(-1)                                   # (B, T, d_inner, 1)
-        A_bar = torch.exp(A * dt_)                               # (B, T, d_inner, d_state)
-        B_bar = B_mat.unsqueeze(2) * dt_                         # (B, T, d_inner, d_state)
-
-        # Selective recurrence: h_t = Ā_t * h_{t-1} + B̄_t * x_t
-        #                        y_t = C_t · h_t
-        # T=32 for CyTOF sequences so the Python loop is negligible.
         h = torch.zeros(B, self.d_inner, self.d_state, device=x.device, dtype=x.dtype)
         ys = []
         for t in range(T):
-            u_t = x_act[:, t, :].unsqueeze(-1) * B_bar[:, t]    # (B, d_inner, d_state)
-            h = A_bar[:, t] * h + u_t                            # (B, d_inner, d_state)
+            dt_t = dt[:, t].unsqueeze(-1)                        # (B, d_inner, 1)
+            A_bar_t = torch.exp(A * dt_t)                        # (B, d_inner, d_state)
+            B_bar_t = B_mat[:, t].unsqueeze(1) * dt_t            # (B, d_inner, d_state)
+            u_t = x_act[:, t].unsqueeze(-1) * B_bar_t            # (B, d_inner, d_state)
+            h = A_bar_t * h + u_t                                # (B, d_inner, d_state)
             y_t = (h * C_mat[:, t].unsqueeze(1)).sum(-1)         # (B, d_inner)
             ys.append(y_t)
         y_ssm = torch.stack(ys, dim=1)                           # (B, T, d_inner)
