@@ -1,0 +1,1447 @@
+{
+  "version": 1,
+  "created_at": "2026-04-04T07:21:03.451Z",
+  "lifetime": {
+    "total_tokens_estimated": 327685,
+    "total_reads": 58,
+    "total_writes": 195,
+    "total_sessions": 2,
+    "anatomy_hits": 53,
+    "anatomy_misses": 5,
+    "repeated_reads_blocked": 54,
+    "estimated_savings_vs_bare_cli": 167167
+  },
+  "sessions": [
+    {
+      "id": "session-2026-04-04-1021",
+      "started": "2026-04-04T07:21:11.360Z",
+      "ended": "2026-04-04T07:40:40.184Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/transformer.py",
+          "tokens_estimated": 2010,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/base.py",
+          "tokens_estimated": 1671,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 351,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/splits.py",
+          "tokens_estimated": 2239,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 3195,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 2196,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/examples/notebooks/test-leiden-vendi-transfer.ipynb",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 45,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/mamba_model.py",
+          "tokens_estimated": 3343,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/__init__.py",
+          "tokens_estimated": 118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/config.py",
+          "tokens_estimated": 992,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/logging.py",
+          "tokens_estimated": 957,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/__init__.py",
+          "tokens_estimated": 48,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/__init__.py",
+          "tokens_estimated": 127,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/metrics.py",
+          "tokens_estimated": 2009,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/perturbation.py",
+          "tokens_estimated": 2020,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 991,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/make_splits.py",
+          "tokens_estimated": 653,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/train_model.py",
+          "tokens_estimated": 2181,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/evaluate_model.py",
+          "tokens_estimated": 2717,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/run_full_experiment.py",
+          "tokens_estimated": 1250,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/summarize_results.py",
+          "tokens_estimated": 1262,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/README_for_analysis_llms.md",
+          "tokens_estimated": 1379,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/ANALYSIS_LLM_INSTRUCTIONS.md",
+          "tokens_estimated": 1131,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/RESULT_SCHEMA.md",
+          "tokens_estimated": 1509,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/EXPERIMENT_REGISTRY.md",
+          "tokens_estimated": 383,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1463,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1538,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 2173,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 361,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 514,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1803,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1905,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3061,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 749,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 799,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 94,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 11707,
+        "output_tokens_estimated": 41425,
+        "reads_count": 8,
+        "writes_count": 31,
+        "repeated_reads_blocked": 7,
+        "anatomy_lookups": 7
+      }
+    },
+    {
+      "id": "session-2026-04-04-1021",
+      "started": "2026-04-04T07:21:11.360Z",
+      "ended": "2026-04-04T07:46:06.978Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/transformer.py",
+          "tokens_estimated": 2010,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/base.py",
+          "tokens_estimated": 1671,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 351,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/splits.py",
+          "tokens_estimated": 2239,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 3195,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 2196,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/examples/notebooks/test-leiden-vendi-transfer.ipynb",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 45,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/mamba_model.py",
+          "tokens_estimated": 3343,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/__init__.py",
+          "tokens_estimated": 118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/config.py",
+          "tokens_estimated": 992,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/logging.py",
+          "tokens_estimated": 957,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/__init__.py",
+          "tokens_estimated": 48,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/__init__.py",
+          "tokens_estimated": 127,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/metrics.py",
+          "tokens_estimated": 2009,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/perturbation.py",
+          "tokens_estimated": 2020,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 991,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/make_splits.py",
+          "tokens_estimated": 653,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/train_model.py",
+          "tokens_estimated": 2181,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/evaluate_model.py",
+          "tokens_estimated": 2717,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/run_full_experiment.py",
+          "tokens_estimated": 1250,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/summarize_results.py",
+          "tokens_estimated": 1262,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/README_for_analysis_llms.md",
+          "tokens_estimated": 1379,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/ANALYSIS_LLM_INSTRUCTIONS.md",
+          "tokens_estimated": 1131,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/RESULT_SCHEMA.md",
+          "tokens_estimated": 1509,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/EXPERIMENT_REGISTRY.md",
+          "tokens_estimated": 383,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1463,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1538,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 2173,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 361,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 514,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1803,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1905,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3061,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 749,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 799,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 94,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 883,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 108,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 315,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 21,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 12484,
+        "output_tokens_estimated": 42752,
+        "reads_count": 9,
+        "writes_count": 35,
+        "repeated_reads_blocked": 7,
+        "anatomy_lookups": 8
+      }
+    },
+    {
+      "id": "session-2026-04-04-1021",
+      "started": "2026-04-04T07:21:11.360Z",
+      "ended": "2026-04-04T07:50:08.084Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/transformer.py",
+          "tokens_estimated": 2010,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/base.py",
+          "tokens_estimated": 1671,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 351,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/splits.py",
+          "tokens_estimated": 2239,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 3922,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 2196,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/examples/notebooks/test-leiden-vendi-transfer.ipynb",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 45,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1683,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 1805,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/mamba_model.py",
+          "tokens_estimated": 3343,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/__init__.py",
+          "tokens_estimated": 118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/config.py",
+          "tokens_estimated": 992,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/logging.py",
+          "tokens_estimated": 957,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/__init__.py",
+          "tokens_estimated": 48,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/__init__.py",
+          "tokens_estimated": 127,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/metrics.py",
+          "tokens_estimated": 2009,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/perturbation.py",
+          "tokens_estimated": 2020,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 991,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/make_splits.py",
+          "tokens_estimated": 653,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/train_model.py",
+          "tokens_estimated": 2181,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/evaluate_model.py",
+          "tokens_estimated": 2717,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/run_full_experiment.py",
+          "tokens_estimated": 1250,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/summarize_results.py",
+          "tokens_estimated": 1262,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/README_for_analysis_llms.md",
+          "tokens_estimated": 1379,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/ANALYSIS_LLM_INSTRUCTIONS.md",
+          "tokens_estimated": 1131,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/RESULT_SCHEMA.md",
+          "tokens_estimated": 1509,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/EXPERIMENT_REGISTRY.md",
+          "tokens_estimated": 383,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1463,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1538,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 2173,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 361,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 514,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1803,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1905,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3061,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 749,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 799,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 94,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 883,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 108,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 315,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 21,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 391,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 69,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 2120,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 2069,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3324,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 16699,
+        "output_tokens_estimated": 50742,
+        "reads_count": 11,
+        "writes_count": 41,
+        "repeated_reads_blocked": 11,
+        "anatomy_lookups": 10
+      }
+    },
+    {
+      "id": "session-2026-04-04-1021",
+      "started": "2026-04-04T07:21:11.360Z",
+      "ended": "2026-04-04T07:54:18.018Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/transformer.py",
+          "tokens_estimated": 2010,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/base.py",
+          "tokens_estimated": 1671,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 351,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/splits.py",
+          "tokens_estimated": 2239,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 3922,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 2196,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/examples/notebooks/test-leiden-vendi-transfer.ipynb",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 45,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1979,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 1805,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1931,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3103,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/mamba_model.py",
+          "tokens_estimated": 3343,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/__init__.py",
+          "tokens_estimated": 118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/config.py",
+          "tokens_estimated": 992,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/logging.py",
+          "tokens_estimated": 957,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/__init__.py",
+          "tokens_estimated": 48,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/__init__.py",
+          "tokens_estimated": 127,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/metrics.py",
+          "tokens_estimated": 2009,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/perturbation.py",
+          "tokens_estimated": 2020,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 991,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/make_splits.py",
+          "tokens_estimated": 653,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/train_model.py",
+          "tokens_estimated": 2181,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/evaluate_model.py",
+          "tokens_estimated": 2717,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/run_full_experiment.py",
+          "tokens_estimated": 1250,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/summarize_results.py",
+          "tokens_estimated": 1262,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/README_for_analysis_llms.md",
+          "tokens_estimated": 1379,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/ANALYSIS_LLM_INSTRUCTIONS.md",
+          "tokens_estimated": 1131,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/RESULT_SCHEMA.md",
+          "tokens_estimated": 1509,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/EXPERIMENT_REGISTRY.md",
+          "tokens_estimated": 383,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1463,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1538,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 2173,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 361,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 514,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1803,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1905,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3061,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 749,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 799,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 94,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 883,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 108,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 315,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 21,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 391,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 69,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 2120,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 2069,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3324,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 95,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 22029,
+        "output_tokens_estimated": 50837,
+        "reads_count": 13,
+        "writes_count": 42,
+        "repeated_reads_blocked": 14,
+        "anatomy_lookups": 12
+      }
+    },
+    {
+      "id": "session-2026-04-04-1021",
+      "started": "2026-04-04T07:21:11.360Z",
+      "ended": "2026-04-04T07:58:04.753Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/transformer.py",
+          "tokens_estimated": 2010,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/base.py",
+          "tokens_estimated": 1671,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 351,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/splits.py",
+          "tokens_estimated": 2239,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 3922,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 2196,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/examples/notebooks/test-leiden-vendi-transfer.ipynb",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 45,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1979,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 1805,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1931,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3103,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/__init__.py",
+          "tokens_estimated": 521,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/mamba_model.py",
+          "tokens_estimated": 3343,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/__init__.py",
+          "tokens_estimated": 118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/config.py",
+          "tokens_estimated": 992,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/logging.py",
+          "tokens_estimated": 957,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 777,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/__init__.py",
+          "tokens_estimated": 48,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3118,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/__init__.py",
+          "tokens_estimated": 127,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/metrics.py",
+          "tokens_estimated": 2009,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/evaluation/perturbation.py",
+          "tokens_estimated": 2020,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 991,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/make_splits.py",
+          "tokens_estimated": 653,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/train_model.py",
+          "tokens_estimated": 2181,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/evaluate_model.py",
+          "tokens_estimated": 2717,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/run_full_experiment.py",
+          "tokens_estimated": 1250,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/summarize_results.py",
+          "tokens_estimated": 1262,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/README_for_analysis_llms.md",
+          "tokens_estimated": 1379,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/ANALYSIS_LLM_INSTRUCTIONS.md",
+          "tokens_estimated": 1131,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/RESULT_SCHEMA.md",
+          "tokens_estimated": 1509,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/docs/EXPERIMENT_REGISTRY.md",
+          "tokens_estimated": 383,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1463,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1538,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 2173,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 361,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/tokenization.py",
+          "tokens_estimated": 514,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 1803,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 1905,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3061,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 749,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 799,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/requirements.txt",
+          "tokens_estimated": 94,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 883,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 108,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 315,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 21,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/preprocessing.py",
+          "tokens_estimated": 391,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 17,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/scripts/prepare_data.py",
+          "tokens_estimated": 69,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/01_dataset_inspection.ipynb",
+          "tokens_estimated": 2120,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/02_tokenization_examples.ipynb",
+          "tokens_estimated": 2069,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/notebooks/03_embedding_visualization.ipynb",
+          "tokens_estimated": 3324,
+          "action": "create"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/data/loader.py",
+          "tokens_estimated": 95,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/models/__init__.py",
+          "tokens_estimated": 540,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 22550,
+        "output_tokens_estimated": 51377,
+        "reads_count": 14,
+        "writes_count": 43,
+        "repeated_reads_blocked": 14,
+        "anatomy_lookups": 13
+      }
+    },
+    {
+      "id": "session-2026-04-04-1153",
+      "started": "2026-04-04T08:53:59.412Z",
+      "ended": "2026-04-04T09:01:47.059Z",
+      "reads": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 883,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/training/trainer.py",
+          "tokens_estimated": 3346,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 358,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 349,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/src/utils/reproducibility.py",
+          "tokens_estimated": 124,
+          "action": "edit"
+        },
+        {
+          "file": "/Users/ronguy/Dropbox/Work/CyTOF/Experiments/MambaC2S/configs/base.yaml",
+          "tokens_estimated": 23,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 4587,
+        "output_tokens_estimated": 496,
+        "reads_count": 3,
+        "writes_count": 3,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 3
+      }
+    }
+  ],
+  "daemon_usage": [],
+  "waste_flags": [],
+  "optimization_report": {
+    "last_generated": null,
+    "patterns": []
+  }
+}

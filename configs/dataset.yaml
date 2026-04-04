@@ -1,0 +1,21 @@
+# Dataset-specific overrides
+# Merge on top of base.yaml
+
+dataset:
+  data_dir: "data/"
+  dataset_name: "levine32"
+  label_col: "label"
+  # Markers present in Levine32 (32 markers)
+  # Leave empty to auto-detect from data
+  markers: []
+  # If set, skip FCS loading and use this processed h5ad directly
+  processed_h5ad: null
+
+preprocessing:
+  arcsinh: true
+  arcsinh_cofactor: 5
+  normalization: "zscore"
+  bin_count: 3
+  bins: ["LOW", "MED", "HIGH"]
+  # Markers to exclude from tokenization (e.g., DNA channels, viability)
+  exclude_markers: []

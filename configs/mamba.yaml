@@ -1,0 +1,22 @@
+# Mamba / SSM model configuration
+# Inherits from base.yaml
+
+model:
+  type: "mamba"
+  d_model: 128
+  n_layers: 3
+  dropout: 0.1
+  max_seq_len: 128
+  # Mamba-specific hyperparameters
+  d_state: 16       # SSM state dimension
+  d_conv: 4         # local convolution width
+  expand: 2         # expansion factor for inner dimension
+
+training:
+  batch_size: 64
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 10
+  grad_clip: 1.0
+  mixed_precision: false

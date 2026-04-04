@@ -1,0 +1,59 @@
+seed: 42
+device: "auto"  # auto = CUDA > MPS > CPU; override with "cuda", "mps", or "cpu"
+
+dataset:
+  data_dir: "data/"
+  dataset_name: "levine32"
+  label_col: "label"
+  # Accepted formats: .fcs, .h5ad, .csv
+  # For FCS files: place all .fcs files in data_dir
+  # For h5ad: set processed_h5ad to the filename
+
+preprocessing:
+  arcsinh: true
+  arcsinh_cofactor: 5
+  normalization: "zscore"  # "zscore" or "robust"
+  bin_count: 3
+  bins: ["LOW", "MED", "HIGH"]
+
+tokenization:
+  scheme: "rank_only"  # "rank_only", "strength_only", or "hybrid"
+
+splits:
+  labeled_train: 0.6
+  labeled_val: 0.2
+  labeled_test: 0.2
+  unlabeled_train: 0.9
+  unlabeled_val: 0.1
+
+model:
+  type: "transformer"
+  d_model: 128
+  n_layers: 3
+  nhead: 4
+  dropout: 0.1
+  max_seq_len: 128
+  # Mamba-specific (ignored for transformer)
+  d_state: 16
+  d_conv: 4
+  expand: 2
+
+training:
+  batch_size: 64
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 10
+  grad_clip: 1.0
+  mixed_precision: false
+
+evaluation:
+  knn_k: 15
+  n_umap_neighbors: 15
+  umap_min_dist: 0.1
+  embedding_pooling: "mean"  # "mean" or "last"
+  batch_size: 256  # for embedding extraction
+
+output:
+  output_dir: "outputs/"
+  exp_id: null  # auto-generated if null: {model_type}_{tokenization}_{timestamp}

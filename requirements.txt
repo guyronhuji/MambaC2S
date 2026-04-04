@@ -1,0 +1,16 @@
+torch>=2.0
+numpy
+pandas
+scikit-learn
+umap-learn
+anndata
+fcsparser
+pyyaml
+omegaconf
+matplotlib
+seaborn
+tqdm
+PyCytoData  # primary Levine32 loader (downloads + caches dataset automatically)
+tabulate    # used by summarize_results.py for markdown tables
+# Optional: mamba-ssm (install separately if CUDA is available)
+# mamba-ssm

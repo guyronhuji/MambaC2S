@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "mambac2s"
+version = "0.1.0"
+description = "Transformer vs Mamba on Levine32 CyTOF data using marker-token sequences"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "umap-learn",
+    "anndata",
+    "fcsparser",
+    "pyyaml",
+    "omegaconf",
+    "matplotlib",
+    "seaborn",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+mamba = ["mamba-ssm"]
+dev = ["pytest", "pytest-cov", "black", "ruff", "mypy"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
