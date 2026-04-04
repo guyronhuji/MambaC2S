@@ -49,8 +49,8 @@ for candidate in "${CANDIDATES[@]}"; do
   MACHINE=$(echo "$candidate" | cut -d: -f2)
   ACCEL=$(echo "$candidate"   | cut -d: -f3)
 
-  echo -n "Trying $ZONE  ($ACCEL) ... "
-  if gcloud compute instances create "$VM_NAME" \
+  echo "Trying $ZONE  ($ACCEL) ..."
+  ERR=$(gcloud compute instances create "$VM_NAME" \
       --project="$PROJECT" \
       --zone="$ZONE" \
       --machine-type="$MACHINE" \
@@ -62,15 +62,15 @@ for candidate in "${CANDIDATES[@]}"; do
       --boot-disk-size="$DISK_SIZE" \
       --boot-disk-type=pd-balanced \
       --metadata=install-nvidia-driver=True \
-      --quiet 2>/dev/null; then
+      --quiet 2>&1) && {
     USED_ZONE="$ZONE"
     USED_MACHINE="$MACHINE"
     USED_ACCEL="$ACCEL"
-    echo "OK"
+    echo "  OK"
     break
-  else
-    echo "no capacity"
-  fi
+  } || {
+    echo "  FAILED: $ERR" | head -3
+  }
 done
 
 if [ -z "$USED_ZONE" ]; then
