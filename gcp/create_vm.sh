@@ -1,82 +1,132 @@
 #!/usr/bin/env bash
 # ============================================================
 # Create a GCP GPU VM for MambaC2S training
-# Run this ONCE from your local machine after: gcloud init
+# Queries live quota to find the best available GPU and zone.
 #
 # Usage:
 #   chmod +x gcp/create_vm.sh
 #   ./gcp/create_vm.sh
 #
-# Cost estimate: n1-standard-4 + T4 ≈ $0.35/hr
-# (remember to stop the VM when done!)
+# Cost estimates (on-demand, approximate):
+#   T4  (n1-standard-4)  ≈ $0.35/hr
+#   L4  (g2-standard-4)  ≈ $0.70/hr
+#   A100(a2-highgpu-1g)  ≈ $3.67/hr
 # ============================================================
 
 set -euo pipefail
 
-# ── Edit these if needed ─────────────────────────────────────
 PROJECT=$(gcloud config get-value project)
 VM_NAME="mambac2s-vm"
-MACHINE_TYPE="n1-standard-4"    # 4 vCPUs, 15 GB RAM
-GPU_TYPE="nvidia-tesla-t4"
-GPU_COUNT=1
 DISK_SIZE="50GB"
-# ─────────────────────────────────────────────────────────────
 
-# T4 zones to try in order (europe-west4 first, then us, then asia)
-ZONES=(
-    europe-west4-a
-    europe-west4-b
-    europe-west4-c
-    us-central1-a
-    us-central1-b
-    us-central1-c
-    us-central1-f
-    us-east1-c
-    us-east1-d
-    us-west1-b
-    asia-east1-a
-    asia-east1-b
-)
+# GPU priority: best first
+declare -A GPU_MACHINE
+GPU_MACHINE["NVIDIA_A100_80GB_GPUS"]="a2-ultragpu-1g"
+GPU_MACHINE["NVIDIA_A100_GPUS"]="a2-highgpu-1g"
+GPU_MACHINE["NVIDIA_L4_GPUS"]="g2-standard-4"
+GPU_MACHINE["NVIDIA_T4_GPUS"]="n1-standard-4"
+
+declare -A GPU_ACCEL
+GPU_ACCEL["NVIDIA_A100_80GB_GPUS"]="nvidia-a100-80gb"
+GPU_ACCEL["NVIDIA_A100_GPUS"]="nvidia-tesla-a100"
+GPU_ACCEL["NVIDIA_L4_GPUS"]="nvidia-l4"
+GPU_ACCEL["NVIDIA_T4_GPUS"]="nvidia-tesla-t4"
+
+GPU_PRIORITY=(NVIDIA_A100_80GB_GPUS NVIDIA_A100_GPUS NVIDIA_L4_GPUS NVIDIA_T4_GPUS)
 
 echo "Project : $PROJECT"
-echo "VM      : $VM_NAME ($MACHINE_TYPE + ${GPU_COUNT}x $GPU_TYPE)"
+echo ""
+echo "Querying GPU quota across all regions ..."
+echo "(this takes ~30 seconds)"
 echo ""
 
-gcloud services enable compute.googleapis.com --quiet
+# Build quota table: region  GPU_TYPE  limit  usage  available
+QUOTA_TABLE=$(
+  for r in $(gcloud compute regions list --format="value(name)"); do
+    gcloud compute regions describe "$r" \
+      --flatten="quotas[]" \
+      --format="csv[no-heading](name,quotas.metric,quotas.limit,quotas.usage)" 2>/dev/null
+  done | awk -F, '
+    $2=="NVIDIA_T4_GPUS" || $2=="NVIDIA_L4_GPUS" || $2=="NVIDIA_A100_GPUS" || $2=="NVIDIA_A100_80GB_GPUS" {
+      avail = ($3+0) - ($4+0)
+      if (avail > 0)
+        printf "%s %s %.0f %.0f %.0f\n", $1, $2, $3+0, $4+0, avail
+    }
+  '
+)
 
+if [ -z "$QUOTA_TABLE" ]; then
+  echo "ERROR: No GPU quota available in any region. Request a quota increase at:"
+  echo "  https://console.cloud.google.com/iam-admin/quotas"
+  exit 1
+fi
+
+echo "Regions with available GPU quota:"
+printf "%-20s %-26s %8s %8s %8s\n" "REGION" "GPU" "LIMIT" "USED" "FREE"
+printf "%-20s %-26s %8s %8s %8s\n" "------" "---" "-----" "----" "----"
+echo "$QUOTA_TABLE" | while read -r region gpu limit used avail; do
+  printf "%-20s %-26s %8.0f %8.0f %8.0f\n" "$region" "$gpu" "$limit" "$used" "$avail"
+done
+echo ""
+
+# Pick the best GPU type available (highest priority first)
+CHOSEN_GPU=""
+CHOSEN_REGION=""
+for gpu in "${GPU_PRIORITY[@]}"; do
+  match=$(echo "$QUOTA_TABLE" | awk -v g="$gpu" '$2==g {print $1; exit}')
+  if [ -n "$match" ]; then
+    CHOSEN_GPU="$gpu"
+    CHOSEN_REGION="$match"
+    break
+  fi
+done
+
+if [ -z "$CHOSEN_GPU" ]; then
+  echo "ERROR: Could not match any GPU type."
+  exit 1
+fi
+
+MACHINE_TYPE="${GPU_MACHINE[$CHOSEN_GPU]}"
+ACCEL="${GPU_ACCEL[$CHOSEN_GPU]}"
+
+echo "Selected: $CHOSEN_GPU in $CHOSEN_REGION → $MACHINE_TYPE + $ACCEL"
+echo ""
+
+# Try all zones in the chosen region
 USED_ZONE=""
-for ZONE in "${ZONES[@]}"; do
-    echo -n "Trying zone $ZONE ... "
-    if gcloud compute instances create "$VM_NAME" \
-        --project="$PROJECT" \
-        --zone="$ZONE" \
-        --machine-type="$MACHINE_TYPE" \
-        --accelerator="type=$GPU_TYPE,count=$GPU_COUNT" \
-        --maintenance-policy=TERMINATE \
-        --restart-on-failure \
-        --image-family=ubuntu-2204-lts \
-        --image-project=ubuntu-os-cloud \
-        --boot-disk-size="$DISK_SIZE" \
-        --boot-disk-type=pd-balanced \
-        --metadata=install-nvidia-driver=True \
-        --quiet 2>/dev/null; then
-        USED_ZONE="$ZONE"
-        echo "OK"
-        break
-    else
-        echo "no capacity, trying next zone ..."
-    fi
+for ZONE in "${CHOSEN_REGION}-a" "${CHOSEN_REGION}-b" "${CHOSEN_REGION}-c" "${CHOSEN_REGION}-d"; do
+  echo -n "Trying $ZONE ... "
+  if gcloud compute instances create "$VM_NAME" \
+      --project="$PROJECT" \
+      --zone="$ZONE" \
+      --machine-type="$MACHINE_TYPE" \
+      --accelerator="type=$ACCEL,count=1" \
+      --maintenance-policy=TERMINATE \
+      --restart-on-failure \
+      --image-family=ubuntu-2204-lts \
+      --image-project=ubuntu-os-cloud \
+      --boot-disk-size="$DISK_SIZE" \
+      --boot-disk-type=pd-balanced \
+      --metadata=install-nvidia-driver=True \
+      --quiet 2>/dev/null; then
+    USED_ZONE="$ZONE"
+    echo "OK"
+    break
+  else
+    echo "no capacity"
+  fi
 done
 
 if [ -z "$USED_ZONE" ]; then
-    echo ""
-    echo "ERROR: No T4 capacity found in any zone. Try again later or use a different GPU type."
-    exit 1
+  echo "ERROR: Quota available but no zone had capacity. Try running again shortly."
+  exit 1
 fi
 
 echo ""
 echo "============================================================"
-echo "  VM created: $VM_NAME  (zone: $USED_ZONE)"
+echo "  VM ready: $VM_NAME"
+echo "  Zone    : $USED_ZONE"
+echo "  GPU     : $ACCEL ($MACHINE_TYPE)"
 echo ""
 echo "  SSH in:"
 echo "    gcloud compute ssh $VM_NAME --zone=$USED_ZONE"
@@ -84,7 +134,7 @@ echo ""
 echo "  Once inside, run setup:"
 echo "    bash <(curl -s https://raw.githubusercontent.com/guyronhuji/MambaC2S/main/gcp/setup_vm.sh)"
 echo ""
-echo "  STOP VM when done (saves cost):"
+echo "  STOP VM when done:"
 echo "    gcloud compute instances stop $VM_NAME --zone=$USED_ZONE"
 echo ""
 echo "  START VM again:"
