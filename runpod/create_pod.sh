@@ -34,9 +34,16 @@ echo ""
 
 # Query the GraphQL API for real-time availability
 GPU_LIST=$(python3 - "$API_KEY" <<'PYEOF'
-import sys, json, urllib.request, urllib.error
+import sys, json, ssl, urllib.request, urllib.error
 
 api_key = sys.argv[1]
+
+# Build SSL context — use certifi if available, otherwise skip verification
+try:
+    import certifi
+    ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    ssl_ctx = ssl._create_unverified_context()
 
 query = """
 query {
@@ -61,7 +68,7 @@ req = urllib.request.Request(
 )
 
 try:
-    with urllib.request.urlopen(req, timeout=15) as r:
+    with urllib.request.urlopen(req, timeout=15, context=ssl_ctx) as r:
         data = json.load(r)
 except urllib.error.URLError as e:
     print(f"ERROR: {e}", file=sys.stderr)
