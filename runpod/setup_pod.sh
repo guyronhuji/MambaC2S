@@ -30,13 +30,11 @@ echo "=== [3/4] Installing mamba-ssm (CUDA kernels) ==="
 # mamba-ssm compiles C++/CUDA extensions — must use pip (not uv) and PyTorch
 # must match the system CUDA toolkit. Force-reinstall PyTorch for cu121 first.
 if nvcc --version &>/dev/null; then
-    SYS_CUDA=$(nvcc --version | grep -oE 'release [0-9]+\.[0-9]+' | awk '{print $2}')
-    CU_TAG="cu$(echo "$SYS_CUDA" | tr -d '.')"
-    echo "System CUDA: ${SYS_CUDA} → installing PyTorch for ${CU_TAG}"
-    pip install --force-reinstall torch torchvision torchaudio \
-        --index-url "https://download.pytorch.org/whl/${CU_TAG}"
-    echo "PyTorch CUDA after reinstall: $(python3 -c 'import torch; print(torch.version.cuda)')"
-    pip install causal-conv1d mamba-ssm
+    # --no-build-isolation is required: tells pip to use the existing CUDA-enabled
+    # PyTorch in the environment instead of pulling a CPU-only torch into an
+    # isolated build env (which causes the CUDA version mismatch error).
+    pip install "causal-conv1d>=1.4.0" --no-build-isolation
+    pip install mamba-ssm --no-build-isolation
 else
     echo "nvcc not found — skipping mamba-ssm (pure-PyTorch fallback will be used)."
 fi
