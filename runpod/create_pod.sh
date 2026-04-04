@@ -32,47 +32,16 @@ fi
 echo "Querying RunPod for available GPUs ..."
 echo ""
 
-# Query the GraphQL API for real-time availability
-GPU_LIST=$(RUNPOD_API_KEY="$API_KEY" python3 - <<'PYEOF'
-import os, sys, json, ssl, urllib.request, urllib.error
+# Query the GraphQL API for real-time availability via curl
+QUERY='{"query":"{ gpuTypes { id displayName memoryInGb lowestPrice(input: {gpuCount: 1}) { minimumBidPrice uninterruptablePrice stockStatus } } }"}'
+RAW_JSON=$(curl -sf -X POST "https://api.runpod.io/graphql?api_key=${API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d "$QUERY") || { echo "ERROR: Failed to query RunPod API"; exit 1; }
 
-api_key = os.environ["RUNPOD_API_KEY"]
+GPU_LIST=$(echo "$RAW_JSON" | python3 - <<'PYEOF'
+import sys, json
 
-# Build SSL context — use certifi if available, otherwise skip verification
-try:
-    import certifi
-    ssl_ctx = ssl.create_default_context(cafile=certifi.where())
-except ImportError:
-    ssl_ctx = ssl._create_unverified_context()
-
-query = """
-query {
-  gpuTypes {
-    id
-    displayName
-    memoryInGb
-    lowestPrice(input: {gpuCount: 1}) {
-      minimumBidPrice
-      uninterruptablePrice
-      stockStatus
-    }
-  }
-}
-"""
-
-url = f"https://api.runpod.io/graphql?api_key={api_key}"
-req = urllib.request.Request(
-    url,
-    data=json.dumps({"query": query}).encode(),
-    headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-)
-
-try:
-    with urllib.request.urlopen(req, timeout=15, context=ssl_ctx) as r:
-        data = json.load(r)
-except urllib.error.URLError as e:
-    print(f"ERROR: {e}", file=sys.stderr)
-    sys.exit(1)
+data = json.load(sys.stdin)
 
 gpus = data.get("data", {}).get("gpuTypes", [])
 
