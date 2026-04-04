@@ -84,6 +84,7 @@ class TransformerLM(BaseModel):
     ) -> None:
         super().__init__(vocab_size=vocab_size, d_model=d_model, max_seq_len=max_seq_len)
 
+        self._causal_mask_cache: dict = {}
         self.n_layers = n_layers
         self.nhead = nhead
         self.dropout_rate = dropout
@@ -147,6 +148,9 @@ class TransformerLM(BaseModel):
         Returns:
             Logits, shape ``(batch, seq_len, vocab_size)``.
         """
+        seq_len = tokens.size(1)
+        causal_mask = self._make_causal_mask(seq_len, tokens.device)
+
         # Key padding mask: True = should be ignored
         key_padding_mask: Optional[torch.Tensor] = None
         if attention_mask is not None:
@@ -155,17 +159,24 @@ class TransformerLM(BaseModel):
         x = self.token_embedding(tokens)  # (B, T, D)
         x = self.pos_encoding(x)  # (B, T, D)
 
-        # Pass is_causal=True without an explicit mask so PyTorch can use the
-        # SDPA fast path (optimised attention kernel on both CUDA and MPS).
         x = self.transformer(
             x,
-            mask=None,
+            mask=causal_mask,
             src_key_padding_mask=key_padding_mask,
             is_causal=True,
         )  # (B, T, D)
 
         logits = self.lm_head(x)  # (B, T, V)
         return logits
+
+    def _make_causal_mask(self, seq_len: int, device: torch.device) -> torch.Tensor:
+        """Return a cached upper-triangular causal mask (seq_len, seq_len)."""
+        key = (seq_len, str(device))
+        if key not in self._causal_mask_cache:
+            self._causal_mask_cache[key] = torch.triu(
+                torch.ones(seq_len, seq_len, device=device), diagonal=1
+            ).bool()
+        return self._causal_mask_cache[key]
 
     def get_hidden_states(
         self,
@@ -181,6 +192,9 @@ class TransformerLM(BaseModel):
         Returns:
             Hidden states, shape ``(batch, seq_len, d_model)``.
         """
+        seq_len = tokens.size(1)
+        causal_mask = self._make_causal_mask(seq_len, tokens.device)
+
         key_padding_mask: Optional[torch.Tensor] = None
         if attention_mask is not None:
             key_padding_mask = ~attention_mask
@@ -190,7 +204,7 @@ class TransformerLM(BaseModel):
 
         hidden = self.transformer(
             x,
-            mask=None,
+            mask=causal_mask,
             src_key_padding_mask=key_padding_mask,
             is_causal=True,
         )
