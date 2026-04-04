@@ -73,11 +73,8 @@ try:
 except ImportError:
     _MINIMAMBA_AVAILABLE = False
 
-if not _MAMBA_SSM_AVAILABLE and not _MINIMAMBA_AVAILABLE:
-    logger.info(
-        "No optimised Mamba backend — using JIT-compiled SimpleMambaLM fallback. "
-        "Install: pip install minimamba  (or mamba-ssm on CUDA)."
-    )
+if not _MAMBA_SSM_AVAILABLE:
+    logger.info("No CUDA mamba_ssm — using JIT-compiled SimpleMambaLM (fastest on MPS/CPU).")
 
 
 # ===========================================================================
@@ -421,6 +418,4 @@ def build_mamba_model(
     )
     if _MAMBA_SSM_AVAILABLE:
         return MambaLM(**kwargs)
-    if _MINIMAMBA_AVAILABLE:
-        return MiniMambaLM(**kwargs)
     return SimpleMambaLM(**kwargs)
