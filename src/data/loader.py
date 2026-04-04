@@ -306,6 +306,11 @@ def _load_h5ad(path: Path, label_col: str) -> pd.DataFrame:
         columns=list(adata.var_names),
     )
 
+    # Restore _rank and _bin columns stored in obs
+    for col in adata.obs.columns:
+        if col.endswith("_rank") or col.endswith("_bin"):
+            df[col] = adata.obs[col].values
+
     # Pull labels from obs
     if label_col in adata.obs.columns:
         df["label"] = adata.obs[label_col].values

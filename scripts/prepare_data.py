@@ -78,12 +78,19 @@ def _save_processed(df, path: Path) -> None:
     try:
         import anndata as ad
         import numpy as np
-        marker_cols = [c for c in df.columns if c not in ("cell_id", "label")]
+        marker_cols = [
+            c for c in df.columns
+            if c not in ("cell_id", "label")
+            and not c.endswith("_rank")
+            and not c.endswith("_bin")
+        ]
         X = df[marker_cols].values.astype(np.float32)
-        adata = ad.AnnData(
-            X=X,
-            obs=df[["cell_id", "label"]].set_index("cell_id"),
-        )
+        # Store _rank and _bin columns in obs so they survive the round-trip
+        obs_cols = ["label"] + [c for c in df.columns if c.endswith("_rank") or c.endswith("_bin")]
+        obs_df = df[[c for c in obs_cols if c in df.columns]].copy()
+        if "cell_id" in df.columns:
+            obs_df.index = df["cell_id"].values
+        adata = ad.AnnData(X=X, obs=obs_df)
         adata.var_names = marker_cols
         adata.write_h5ad(path)
     except ImportError:
