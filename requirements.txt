@@ -1,5 +1,5 @@
 torch>=2.0
-numpy
+numpy<2.0  # fcsparser (used by PyCytoData) is not yet compatible with NumPy 2.x
 pandas
 scikit-learn
 umap-learn
