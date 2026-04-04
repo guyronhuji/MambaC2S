@@ -51,26 +51,32 @@ def _ssm_scan(
 
 
 # ---------------------------------------------------------------------------
-# Try to import official mamba_ssm
+# Try to import official mamba_ssm (CUDA kernels — RunPod only)
 # ---------------------------------------------------------------------------
 try:
     from mamba_ssm import Mamba as _MambaBlock  # type: ignore[import]
-    # Only use mamba_ssm kernels on CUDA — on MPS/CPU the package falls back to
-    # a pure-Python selective_scan_ref loop which is slower than our JIT-compiled
-    # SimpleMambaLM. Real hardware-accelerated kernels require NVIDIA CUDA.
     _MAMBA_SSM_AVAILABLE = torch.cuda.is_available()
     if _MAMBA_SSM_AVAILABLE:
-        logger.info("mamba_ssm package found + CUDA available — using hardware-optimised kernels.")
+        logger.info("mamba_ssm + CUDA — using hardware-optimised kernels.")
     else:
-        logger.info(
-            "mamba_ssm package found but no CUDA — using JIT-compiled SimpleMambaLM "
-            "(faster than mamba_ssm's Python fallback on MPS/CPU)."
-        )
+        logger.info("mamba_ssm found but no CUDA — will use MiniMamba or SimpleMambaLM.")
 except ImportError:
     _MAMBA_SSM_AVAILABLE = False
+
+# Try to import MiniMamba (parallel scan, cross-platform — MPS + CUDA + CPU)
+# ---------------------------------------------------------------------------
+try:
+    from minimamba import MambaBlock as _MiniMambaBlock, MambaConfig as _MiniMambaConfig  # type: ignore[import]
+    _MINIMAMBA_AVAILABLE = not _MAMBA_SSM_AVAILABLE  # prefer CUDA kernels when available
+    if _MINIMAMBA_AVAILABLE:
+        logger.info("minimamba found — using parallel-scan MambaBlock (MPS/CPU).")
+except ImportError:
+    _MINIMAMBA_AVAILABLE = False
+
+if not _MAMBA_SSM_AVAILABLE and not _MINIMAMBA_AVAILABLE:
     logger.info(
-        "mamba_ssm not installed — falling back to pure-PyTorch SSM implementation. "
-        "Install with: pip install mamba-ssm (CUDA) or mamba-ssm-macos (Apple Silicon)."
+        "No optimised Mamba backend — using JIT-compiled SimpleMambaLM fallback. "
+        "Install: pip install minimamba  (or mamba-ssm on CUDA)."
     )
 
 
@@ -243,6 +249,70 @@ class SimpleMambaLM(BaseModel):
 
 
 # ===========================================================================
+# MiniMamba wrapper: MiniMambaLM (parallel scan, cross-platform)
+# ===========================================================================
+
+if _MINIMAMBA_AVAILABLE:
+    class MiniMambaLM(BaseModel):
+        """Mamba LM using MiniMamba's parallel-scan MambaBlock.
+
+        Works on CPU, MPS, and CUDA without custom kernels.
+        Uses true parallel scan (cumsum in log-space) — no Python loop per token.
+        """
+
+        def __init__(
+            self,
+            vocab_size: int,
+            d_model: int = 128,
+            n_layers: int = 3,
+            d_state: int = 16,
+            d_conv: int = 4,
+            expand: int = 2,
+            dropout: float = 0.1,
+            max_seq_len: int = 128,
+        ) -> None:
+            super().__init__(vocab_size=vocab_size, d_model=d_model, max_seq_len=max_seq_len)
+
+            self.token_embedding = nn.Embedding(vocab_size, d_model, padding_idx=0)
+            self.embed_dropout = nn.Dropout(dropout)
+
+            block_cfg = _MiniMambaConfig(
+                d_model=d_model,
+                d_state=d_state,
+                d_conv=d_conv,
+                expand=expand,
+                vocab_size=vocab_size,
+                bias=False,
+                conv_bias=True,
+            )
+            self.layers = nn.ModuleList([
+                _MiniMambaBlock(block_cfg) for _ in range(n_layers)
+            ])
+
+            self.norm = nn.LayerNorm(d_model)
+            self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
+            self.lm_head.weight = self.token_embedding.weight  # weight tying
+
+        def get_hidden_states(
+            self,
+            tokens: torch.Tensor,
+            attention_mask: Optional[torch.Tensor] = None,
+        ) -> torch.Tensor:
+            x = self.token_embedding(tokens)
+            x = self.embed_dropout(x)
+            for layer in self.layers:
+                x = layer(x)
+            return self.norm(x)
+
+        def forward(
+            self,
+            tokens: torch.Tensor,
+            attention_mask: Optional[torch.Tensor] = None,
+        ) -> torch.Tensor:
+            return self.lm_head(self.get_hidden_states(tokens, attention_mask))
+
+
+# ===========================================================================
 # Official mamba_ssm wrapper: MambaLM
 # ===========================================================================
 
@@ -351,4 +421,6 @@ def build_mamba_model(
     )
     if _MAMBA_SSM_AVAILABLE:
         return MambaLM(**kwargs)
+    if _MINIMAMBA_AVAILABLE:
+        return MiniMambaLM(**kwargs)
     return SimpleMambaLM(**kwargs)
