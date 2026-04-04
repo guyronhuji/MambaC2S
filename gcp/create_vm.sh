@@ -22,8 +22,11 @@ GPU_COUNT=1
 DISK_SIZE="50GB"
 # ─────────────────────────────────────────────────────────────
 
-# T4 zones to try in order (us first, then europe, then asia)
+# T4 zones to try in order (europe-west4 first, then us, then asia)
 ZONES=(
+    europe-west4-a
+    europe-west4-b
+    europe-west4-c
     us-central1-a
     us-central1-b
     us-central1-c
@@ -31,8 +34,6 @@ ZONES=(
     us-east1-c
     us-east1-d
     us-west1-b
-    europe-west4-a
-    europe-west4-b
     asia-east1-a
     asia-east1-b
 )
