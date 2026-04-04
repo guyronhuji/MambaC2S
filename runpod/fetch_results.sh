@@ -106,18 +106,21 @@ echo "SSH  : $SSH_USER_HOST${SSH_PORT:+ port $SSH_PORT}"
 echo "Dest : $LOCAL_DEST"
 echo ""
 
-SSH_BASE="-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR"
-if [ -n "$SSH_PORT" ]; then
-    rsync -avz --progress \
-        -e "ssh -p $SSH_PORT $SSH_BASE" \
-        "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
-        "$LOCAL_DEST/"
-else
-    rsync -avz --progress \
-        -e "ssh $SSH_BASE" \
-        "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
-        "$LOCAL_DEST/"
+SSH_KEY="$HOME/.ssh/id_ed25519"
+SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o ForwardX11=no -o LogLevel=ERROR -o BatchMode=yes -q"
+[ -n "$SSH_PORT" ] && SSH_OPTS="-p $SSH_PORT $SSH_OPTS"
+
+# Verify connection before rsync
+echo "Testing SSH connection ..."
+if ! ssh $SSH_OPTS "$SSH_USER_HOST" "echo OK" 2>&1; then
+    echo "ERROR: SSH connection failed. Check your key and that the pod is ready."
+    exit 1
 fi
+
+rsync -avz --progress \
+    -e "ssh $SSH_OPTS" \
+    "${SSH_USER_HOST}:/workspace/MambaC2S/outputs/" \
+    "$LOCAL_DEST/"
 
 echo ""
 echo "Done — results saved to $LOCAL_DEST"
