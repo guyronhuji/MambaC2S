@@ -2,6 +2,7 @@
 # ============================================================
 # Create a GCP GPU VM for MambaC2S training
 # Queries live quota to find the best available GPU and zone.
+# Compatible with bash 3.2 (macOS default).
 #
 # Usage:
 #   chmod +x gcp/create_vm.sh
@@ -19,20 +20,26 @@ PROJECT=$(gcloud config get-value project)
 VM_NAME="mambac2s-vm"
 DISK_SIZE="50GB"
 
-# GPU priority: best first
-declare -A GPU_MACHINE
-GPU_MACHINE["NVIDIA_A100_80GB_GPUS"]="a2-ultragpu-1g"
-GPU_MACHINE["NVIDIA_A100_GPUS"]="a2-highgpu-1g"
-GPU_MACHINE["NVIDIA_L4_GPUS"]="g2-standard-4"
-GPU_MACHINE["NVIDIA_T4_GPUS"]="n1-standard-4"
+# Map GPU quota name → machine type (bash 3.2 compatible: no declare -A)
+gpu_machine() {
+  case "$1" in
+    NVIDIA_A100_80GB_GPUS) echo "a2-ultragpu-1g" ;;
+    NVIDIA_A100_GPUS)      echo "a2-highgpu-1g" ;;
+    NVIDIA_L4_GPUS)        echo "g2-standard-4" ;;
+    NVIDIA_T4_GPUS)        echo "n1-standard-4" ;;
+  esac
+}
 
-declare -A GPU_ACCEL
-GPU_ACCEL["NVIDIA_A100_80GB_GPUS"]="nvidia-a100-80gb"
-GPU_ACCEL["NVIDIA_A100_GPUS"]="nvidia-tesla-a100"
-GPU_ACCEL["NVIDIA_L4_GPUS"]="nvidia-l4"
-GPU_ACCEL["NVIDIA_T4_GPUS"]="nvidia-tesla-t4"
+gpu_accel() {
+  case "$1" in
+    NVIDIA_A100_80GB_GPUS) echo "nvidia-a100-80gb" ;;
+    NVIDIA_A100_GPUS)      echo "nvidia-tesla-a100" ;;
+    NVIDIA_L4_GPUS)        echo "nvidia-l4" ;;
+    NVIDIA_T4_GPUS)        echo "nvidia-tesla-t4" ;;
+  esac
+}
 
-GPU_PRIORITY=(NVIDIA_A100_80GB_GPUS NVIDIA_A100_GPUS NVIDIA_L4_GPUS NVIDIA_T4_GPUS)
+GPU_PRIORITY="NVIDIA_A100_80GB_GPUS NVIDIA_A100_GPUS NVIDIA_L4_GPUS NVIDIA_T4_GPUS"
 
 echo "Project : $PROJECT"
 echo ""
@@ -56,8 +63,8 @@ QUOTA_TABLE=$(
 )
 
 if [ -z "$QUOTA_TABLE" ]; then
-  echo "ERROR: No GPU quota available in any region. Request a quota increase at:"
-  echo "  https://console.cloud.google.com/iam-admin/quotas"
+  echo "ERROR: No GPU quota available in any region."
+  echo "Request a quota increase at: https://console.cloud.google.com/iam-admin/quotas"
   exit 1
 fi
 
@@ -72,7 +79,7 @@ echo ""
 # Pick the best GPU type available (highest priority first)
 CHOSEN_GPU=""
 CHOSEN_REGION=""
-for gpu in "${GPU_PRIORITY[@]}"; do
+for gpu in $GPU_PRIORITY; do
   match=$(echo "$QUOTA_TABLE" | awk -v g="$gpu" '$2==g {print $1; exit}')
   if [ -n "$match" ]; then
     CHOSEN_GPU="$gpu"
@@ -86,8 +93,8 @@ if [ -z "$CHOSEN_GPU" ]; then
   exit 1
 fi
 
-MACHINE_TYPE="${GPU_MACHINE[$CHOSEN_GPU]}"
-ACCEL="${GPU_ACCEL[$CHOSEN_GPU]}"
+MACHINE_TYPE=$(gpu_machine "$CHOSEN_GPU")
+ACCEL=$(gpu_accel "$CHOSEN_GPU")
 
 echo "Selected: $CHOSEN_GPU in $CHOSEN_REGION → $MACHINE_TYPE + $ACCEL"
 echo ""
@@ -118,7 +125,7 @@ for ZONE in "${CHOSEN_REGION}-a" "${CHOSEN_REGION}-b" "${CHOSEN_REGION}-c" "${CH
 done
 
 if [ -z "$USED_ZONE" ]; then
-  echo "ERROR: Quota available but no zone had capacity. Try running again shortly."
+  echo "ERROR: Quota available but no zone had capacity. Try again shortly."
   exit 1
 fi
 
