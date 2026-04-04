@@ -27,6 +27,13 @@ CANDIDATES=(
   "europe-west4-c:n1-standard-4:nvidia-tesla-t4"
   "europe-west4-a:g2-standard-4:nvidia-l4"
   "europe-west4-b:g2-standard-4:nvidia-l4"
+  "europe-west1-b:n1-standard-4:nvidia-tesla-t4"
+  "europe-west1-c:n1-standard-4:nvidia-tesla-t4"
+  "europe-west1-d:n1-standard-4:nvidia-tesla-t4"
+  "europe-west2-a:n1-standard-4:nvidia-tesla-t4"
+  "europe-west2-b:n1-standard-4:nvidia-tesla-t4"
+  "europe-west3-b:n1-standard-4:nvidia-tesla-t4"
+  "europe-west3-c:n1-standard-4:nvidia-tesla-t4"
   "us-central1-a:n1-standard-4:nvidia-tesla-t4"
   "us-central1-b:n1-standard-4:nvidia-tesla-t4"
   "us-central1-c:n1-standard-4:nvidia-tesla-t4"
@@ -34,6 +41,8 @@ CANDIDATES=(
   "us-east1-c:n1-standard-4:nvidia-tesla-t4"
   "us-east1-d:n1-standard-4:nvidia-tesla-t4"
   "us-west1-b:n1-standard-4:nvidia-tesla-t4"
+  "us-central1-a:g2-standard-4:nvidia-l4"
+  "us-central1-b:g2-standard-4:nvidia-l4"
 )
 # ─────────────────────────────────────────────────────────────
 
@@ -50,7 +59,7 @@ for candidate in "${CANDIDATES[@]}"; do
   ACCEL=$(echo "$candidate"   | cut -d: -f3)
 
   echo "Trying $ZONE  ($ACCEL) ..."
-  ERR=$(gcloud compute instances create "$VM_NAME" \
+  if ERR=$(gcloud compute instances create "$VM_NAME" \
       --project="$PROJECT" \
       --zone="$ZONE" \
       --machine-type="$MACHINE" \
@@ -62,15 +71,15 @@ for candidate in "${CANDIDATES[@]}"; do
       --boot-disk-size="$DISK_SIZE" \
       --boot-disk-type=pd-balanced \
       --metadata=install-nvidia-driver=True \
-      --quiet 2>&1) && {
+      --quiet 2>&1); then
     USED_ZONE="$ZONE"
     USED_MACHINE="$MACHINE"
     USED_ACCEL="$ACCEL"
     echo "  OK"
     break
-  } || {
-    echo "  FAILED: $ERR" | head -3
-  }
+  else
+    echo "$ERR" | grep -E "code:|message:" | head -2 | sed 's/^/  /'
+  fi
 done
 
 if [ -z "$USED_ZONE" ]; then
