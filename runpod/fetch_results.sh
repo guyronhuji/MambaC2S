@@ -4,26 +4,30 @@
 # Run this from your LOCAL machine.
 #
 # Usage:
-#   bash runpod/fetch_results.sh <ssh-host> <ssh-port>
+#   bash runpod/fetch_results.sh <ssh-user@host> [port]
 #
-# Get ssh-host and ssh-port from:
-#   https://www.runpod.io/console/pods → Connect → SSH
-#   It looks like: ssh root@ssh.runpod.io -p 12345
-#   → host = ssh.runpod.io   port = 12345
+# Examples:
+#   bash runpod/fetch_results.sh yk23p2p92l9t8c-64411c9e@ssh.runpod.io
+#   bash runpod/fetch_results.sh root@ssh.runpod.io 12345
 # ============================================================
 
 set -euo pipefail
 
-SSH_HOST="${1:?Usage: bash runpod/fetch_results.sh <ssh-host> <ssh-port>}"
-SSH_PORT="${2:?Usage: bash runpod/fetch_results.sh <ssh-host> <ssh-port>}"
+TARGET="${1:?Usage: bash runpod/fetch_results.sh <user@host> [port]}"
+PORT="${2:-}"
 LOCAL_DEST="./outputs/runpod"
 
 mkdir -p "$LOCAL_DEST"
 
-echo "Fetching outputs from $SSH_HOST:$SSH_PORT ..."
-rsync -avz --progress \
-    -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no" \
-    "root@$SSH_HOST:/workspace/MambaC2S/outputs/" \
+if [ -n "$PORT" ]; then
+  SSH_OPT="-e ssh -p $PORT -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+else
+  SSH_OPT="-e ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no"
+fi
+
+echo "Fetching from $TARGET ..."
+rsync -avz --progress $SSH_OPT \
+    "$TARGET:/workspace/MambaC2S/outputs/" \
     "$LOCAL_DEST/"
 
 echo ""
