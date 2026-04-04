@@ -28,7 +28,7 @@ echo "Hybrid-scheme experiment run — $(date)"
 echo "Logs → $LOG_DIR"
 echo ""
 
-ALL_JOBS=(transformer|hybrid mamba|hybrid)
+ALL_JOBS=("transformer|hybrid" "mamba|hybrid")
 
 run_job() {
     local model="$1" scheme="$2" logfile="$3" statusfile="$4"
