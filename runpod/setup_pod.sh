@@ -33,11 +33,9 @@ uv pip install --system --verbose \
 
 echo ""
 echo "=== [3b/4] Installing mamba-ssm (CUDA kernels) ==="
-# mamba-ssm requires CUDA and builds C++/CUDA extensions at install time.
-# This gives ~10-20x speedup over the pure-PyTorch fallback on GPU.
+# mamba-ssm compiles C++/CUDA extensions at install time — must use pip, not uv.
 if python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
-    uv pip install --system mamba-ssm causal-conv1d || \
-        echo "WARNING: mamba-ssm install failed — will use pure-PyTorch fallback."
+    pip install causal-conv1d mamba-ssm
 else
     echo "No CUDA — skipping mamba-ssm (pure-PyTorch fallback will be used)."
 fi
