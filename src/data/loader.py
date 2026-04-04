@@ -20,6 +20,16 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# NumPy 2.0 compatibility shim for fcsparser
+# fcsparser calls ndarray.newbyteorder() which was removed in NumPy 2.0.
+# Patch it back so PyCytoData works on Colab and other NumPy 2.x environments.
+# ---------------------------------------------------------------------------
+if not hasattr(np.ndarray, "newbyteorder"):
+    def _ndarray_newbyteorder(self, order="S"):
+        return self.view(self.dtype.newbyteorder(order))
+    np.ndarray.newbyteorder = _ndarray_newbyteorder  # type: ignore[attr-defined]
+
 # Known Levine32 marker names (used for auto-detection when column names are ambiguous)
 LEVINE32_MARKERS = [
     "CD45RA", "CD133", "CD19", "CD22", "CD11b", "CD4", "CD8",
