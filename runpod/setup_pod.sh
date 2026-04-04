@@ -12,7 +12,12 @@
 
 set -euo pipefail
 
-echo "=== [1/3] Clone repo ==="
+echo "=== [1/4] Install uv (fast package installer) ==="
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+
+echo ""
+echo "=== [2/4] Clone repo ==="
 if [ ! -d /workspace/MambaC2S ]; then
     git clone https://github.com/guyronhuji/MambaC2S.git /workspace/MambaC2S
 else
@@ -22,12 +27,12 @@ fi
 cd /workspace/MambaC2S
 
 echo ""
-echo "=== [2/3] Install dependencies ==="
+echo "=== [3/4] Install dependencies ==="
 # PyTorch already installed in the image — skip it from requirements
-pip install -q PyCytoData anndata umap-learn scikit-learn matplotlib seaborn pyyaml tabulate
+uv pip install --system PyCytoData anndata umap-learn scikit-learn matplotlib seaborn pyyaml tabulate
 
 echo ""
-echo "=== [3/3] Verify GPU ==="
+echo "=== [4/4] Verify GPU ==="
 python3 -c "
 import torch
 print('CUDA available :', torch.cuda.is_available())
