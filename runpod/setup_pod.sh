@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-echo "=== [1/4] Cloning repo ==="
+echo "=== [1/3] Cloning repo ==="
 if [ ! -d /workspace/MambaC2S ]; then
     git clone https://github.com/guyronhuji/MambaC2S.git /workspace/MambaC2S
 else
@@ -20,26 +20,13 @@ cd /workspace/MambaC2S
 echo "Repo ready at $(pwd)"
 
 echo ""
-echo "=== [2/4] Installing dependencies ==="
+echo "=== [2/3] Installing dependencies ==="
 pip install \
     PyCytoData anndata umap-learn scikit-learn \
     matplotlib seaborn pyyaml tabulate rich
 
 echo ""
-echo "=== [3/4] Installing mamba-ssm (CUDA kernels) ==="
-# mamba-ssm compiles C++/CUDA extensions — must use pip (not uv) and PyTorch
-# must match the system CUDA toolkit. Force-reinstall PyTorch for cu121 first.
-if nvcc --version &>/dev/null; then
-    # --no-build-isolation is required: tells pip to use the existing CUDA-enabled
-    # PyTorch in the environment instead of pulling a CPU-only torch into an
-    # isolated build env (which causes the CUDA version mismatch error).
-    pip install mamba-ssm --no-build-isolation
-else
-    echo "nvcc not found — skipping mamba-ssm (pure-PyTorch fallback will be used)."
-fi
-
-echo ""
-echo "=== [4/4] Verifying installation ==="
+echo "=== [3/3] Verifying installation ==="
 python3 -c "
 import torch
 print('CUDA available :', torch.cuda.is_available())
@@ -47,10 +34,6 @@ if torch.cuda.is_available():
     print('GPU            :', torch.cuda.get_device_name(0))
     print('VRAM           :', round(torch.cuda.get_device_properties(0).total_memory / 1e9, 1), 'GB')
 print('PyTorch        :', torch.__version__)
-try:
-    import mamba_ssm; print('mamba-ssm      : installed ✓')
-except ImportError:
-    print('mamba-ssm      : NOT installed (pure-PyTorch fallback)')
 "
 
 grep -q "cd /workspace/MambaC2S" ~/.bashrc 2>/dev/null || \
@@ -60,4 +43,5 @@ echo ""
 echo "============================================================"
 echo "  Setup complete!  Run training with:"
 echo "    bash runpod/train.sh"
+echo "    bash runpod/train_latent_sweep.sh"
 echo "============================================================"

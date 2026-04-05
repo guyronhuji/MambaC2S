@@ -5,7 +5,7 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "mambac2s"
 version = "0.1.0"
-description = "Transformer vs Mamba on Levine32 CyTOF data using marker-token sequences"
+description = "Architecture comparison (Transformer/LSTM/GRU/MLP/DeepSets) on Levine32 CyTOF data"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.0",
@@ -23,7 +23,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mamba = ["mamba-ssm"]
 dev = ["pytest", "pytest-cov", "black", "ruff", "mypy"]
 
 [tool.setuptools.packages.find]
