@@ -1,12 +1,8 @@
-"""Training loop for autoregressive CyTOF sequence models.
+"""Training loop for CyTOF sequence and vector models.
 
-Implements:
-- Next-token prediction with teacher forcing
-- AdamW optimiser
-- Early stopping on validation loss
-- Best-checkpoint saving
-- Optional mixed precision (torch.amp)
-- Per-epoch logging via :class:`~src.utils.logging.TrainingLogger`
+Supports two modes:
+  - ``mode="sequence"`` — autoregressive next-token prediction (Transformer/LSTM/GRU)
+  - ``mode="vector"``   — supervised cross-entropy classification (MLP/DeepSets)
 """
 
 from __future__ import annotations
@@ -14,23 +10,24 @@ from __future__ import annotations
 import logging
 import math
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import sys
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
-from src.models.base import BaseModel
+from src.models.base import BaseModel, VectorBaseModel
 from src.utils.logging import TrainingLogger
 
 logger = logging.getLogger(__name__)
 
 
 # ===========================================================================
-# Dataset
+# Datasets
 # ===========================================================================
 
 class CellSequenceDataset(Dataset):
@@ -85,31 +82,69 @@ class CellSequenceDataset(Dataset):
         }
 
 
+class CellVectorDataset(Dataset):
+    """PyTorch Dataset for raw marker-vector supervised classification.
+
+    Args:
+        markers: Float array of shape ``(n_cells, n_markers)``.
+        labels: Integer label array of shape ``(n_cells,)``.
+    """
+
+    def __init__(self, markers: np.ndarray, labels: np.ndarray) -> None:
+        self.markers = torch.tensor(markers, dtype=torch.float32)
+        self.labels = torch.tensor(labels, dtype=torch.long)
+
+    def __len__(self) -> int:
+        return len(self.labels)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        return {"markers": self.markers[idx], "labels": self.labels[idx]}
+
+
+class CellUnlabeledDataset(Dataset):
+    """PyTorch Dataset for unsupervised autoencoder training (no labels).
+
+    Args:
+        markers: Float array of shape ``(n_cells, n_markers)``.
+    """
+
+    def __init__(self, markers: np.ndarray) -> None:
+        self.markers = torch.tensor(markers, dtype=torch.float32)
+
+    def __len__(self) -> int:
+        return len(self.markers)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        return {"markers": self.markers[idx]}
+
+
 # ===========================================================================
 # Trainer
 # ===========================================================================
 
 class Trainer:
-    """Manages training and validation of a :class:`~src.models.base.BaseModel`.
+    """Manages training and validation of sequence or vector models.
 
     Args:
-        model: The model to train.
-        train_loader: DataLoader yielding ``{input_ids, attention_mask}`` dicts.
-        val_loader: DataLoader for validation loss computation.
+        model: The model to train (BaseModel or VectorBaseModel).
+        train_loader: Training DataLoader.
+        val_loader: Validation DataLoader.
         output_dir: Directory for checkpoints and logs.
         lr: Learning rate.
         weight_decay: AdamW weight decay.
         max_epochs: Maximum training epochs.
         patience: Early stopping patience (epochs without val improvement).
         grad_clip: Gradient clipping norm (0 = disabled).
-        mixed_precision: Enable ``torch.amp`` mixed precision on CUDA.
+        mixed_precision: Enable ``torch.amp`` mixed precision.
         device: Training device.
-        pad_id: Padding token id (used to mask loss).
+        pad_id: Padding token id (sequence mode only).
+        mode: ``"sequence"`` for autoregressive LM; ``"vector"`` for supervised
+            classifier; ``"reconstruction"`` for unsupervised autoencoder (MSE).
     """
 
     def __init__(
         self,
-        model: BaseModel,
+        model: Union[BaseModel, VectorBaseModel],
         train_loader: DataLoader,
         val_loader: DataLoader,
         output_dir: str | Path,
@@ -121,6 +156,7 @@ class Trainer:
         mixed_precision: bool = False,
         device: str | torch.device = "cpu",
         pad_id: int = 0,
+        mode: str = "sequence",
     ) -> None:
         self.model = model
         self.train_loader = train_loader
@@ -134,6 +170,7 @@ class Trainer:
         self.patience = patience
         self.grad_clip = grad_clip
         self.pad_id = pad_id
+        self.mode = mode
 
         self.device = torch.device(device) if isinstance(device, str) else device
         self.model.to(self.device)
@@ -143,7 +180,6 @@ class Trainer:
         )
 
         # Mixed precision: supported on MPS (bfloat16) and CUDA (float16).
-        # MPS does not support GradScaler, so we disable it on MPS.
         self.use_amp = mixed_precision and self.device.type in ("mps", "cuda")
         self.scaler = (
             torch.cuda.amp.GradScaler()
@@ -175,8 +211,8 @@ class Trainer:
         """
         best_epoch = 0
         logger.info(
-            "Starting training: max_epochs=%d  patience=%d  device=%s",
-            self.max_epochs, self.patience, self.device,
+            "Starting training: mode=%s  max_epochs=%d  patience=%d  device=%s",
+            self.mode, self.max_epochs, self.patience, self.device,
         )
 
         epoch_bar = tqdm(
@@ -187,15 +223,25 @@ class Trainer:
             file=sys.stderr,
         )
         for epoch in epoch_bar:
-            train_loss = self._train_epoch()
-            val_loss, val_ppl = self._val_epoch()
-            current_lr = self.optimiser.param_groups[0]["lr"]
+            if self.mode == "sequence":
+                train_loss = self._train_epoch()
+                val_loss, val_metric = self._val_epoch()
+                metric_label, metric_fmt = "ppl", f"{val_metric:.1f}"
+            elif self.mode == "reconstruction":
+                train_loss = self._train_epoch_reconstruction()
+                val_loss, val_metric = self._val_epoch_reconstruction()
+                metric_label, metric_fmt = "mse", f"{val_metric:.4f}"
+            else:
+                train_loss = self._train_epoch_vector()
+                val_loss, val_metric = self._val_epoch_vector()
+                metric_label, metric_fmt = "acc", f"{val_metric:.4f}"
 
+            current_lr = self.optimiser.param_groups[0]["lr"]
             self.metric_logger.log(
                 epoch=epoch,
                 train_loss=train_loss,
                 val_loss=val_loss,
-                val_perplexity=val_ppl,
+                val_perplexity=val_metric,
                 lr=current_lr,
             )
 
@@ -207,11 +253,13 @@ class Trainer:
                 self._save_checkpoint(epoch)
 
             epoch_bar.set_postfix(
-                train=f"{train_loss:.4f}",
-                val=f"{val_loss:.4f}",
-                ppl=f"{val_ppl:.1f}",
-                best=f"e{best_epoch}",
-                marker="*" if improved else "",
+                {
+                    "train": f"{train_loss:.4f}",
+                    "val": f"{val_loss:.4f}",
+                    metric_label: metric_fmt,
+                    "best": f"e{best_epoch}",
+                    "": "*" if improved else "",
+                },
                 refresh=False,
             )
 
@@ -229,7 +277,7 @@ class Trainer:
         }
 
     # ------------------------------------------------------------------
-    # Internal
+    # Sequence mode (autoregressive LM)
     # ------------------------------------------------------------------
 
     def _train_epoch(self) -> float:
@@ -241,7 +289,6 @@ class Trainer:
             input_ids = batch["input_ids"].to(self.device)
             attn_mask = batch["attention_mask"].to(self.device)
 
-            # Autoregressive: predict token[t+1] from tokens[0:t+1]
             src = input_ids[:, :-1]
             tgt = input_ids[:, 1:]
             src_mask = attn_mask[:, :-1]
@@ -250,12 +297,7 @@ class Trainer:
             self.optimiser.zero_grad()
 
             if self.use_amp:
-                # Use bfloat16 on MPS, float16 on CUDA
-                amp_dtype = (
-                    torch.bfloat16
-                    if self.device.type == "mps"
-                    else torch.float16
-                )
+                amp_dtype = torch.bfloat16 if self.device.type == "mps" else torch.float16
                 with torch.amp.autocast(device_type=self.device.type, dtype=amp_dtype):
                     logits = self.model(src, attention_mask=src_mask)
                     loss = self._compute_loss(logits, tgt, tgt_mask)
@@ -308,7 +350,7 @@ class Trainer:
             n_tokens = n_tokens + n
 
         avg_loss = (total_loss / n_tokens.clamp(min=1)).item()
-        perplexity = math.exp(min(avg_loss, 100))  # cap to avoid overflow
+        perplexity = math.exp(min(avg_loss, 100))
         return avg_loss, perplexity
 
     def _compute_loss(
@@ -326,15 +368,120 @@ class Trainer:
             reduction="mean",
         )
 
+    # ------------------------------------------------------------------
+    # Vector mode (supervised classifier)
+    # ------------------------------------------------------------------
+
+    def _train_epoch_vector(self) -> float:
+        self.model.train()
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_cells = torch.tensor(0, device=self.device)
+
+        for batch in self.train_loader:
+            markers = batch["markers"].to(self.device)
+            labels = batch["labels"].to(self.device)
+
+            self.optimiser.zero_grad()
+            logits = self.model(markers)  # (B, n_classes)
+            loss = nn.functional.cross_entropy(logits, labels)
+            loss.backward()
+            if self.grad_clip > 0:
+                nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            self.optimiser.step()
+
+            n = torch.tensor(markers.size(0), device=self.device)
+            total_loss = total_loss + loss.detach() * n
+            n_cells = n_cells + n
+
+        return (total_loss / n_cells.clamp(min=1)).item()
+
+    @torch.no_grad()
+    def _val_epoch_vector(self) -> tuple[float, float]:
+        """Returns (val_loss, val_accuracy)."""
+        self.model.eval()
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_correct = torch.tensor(0, device=self.device)
+        n_cells = torch.tensor(0, device=self.device)
+
+        for batch in self.val_loader:
+            markers = batch["markers"].to(self.device)
+            labels = batch["labels"].to(self.device)
+
+            logits = self.model(markers)
+            loss = nn.functional.cross_entropy(logits, labels)
+
+            n = torch.tensor(markers.size(0), device=self.device)
+            total_loss = total_loss + loss.detach() * n
+            n_cells = n_cells + n
+            n_correct = n_correct + (logits.argmax(dim=-1) == labels).sum()
+
+        avg_loss = (total_loss / n_cells.clamp(min=1)).item()
+        accuracy = (n_correct / n_cells.clamp(min=1)).item()
+        return avg_loss, accuracy
+
+    # ------------------------------------------------------------------
+    # Reconstruction mode (unsupervised autoencoder)
+    # ------------------------------------------------------------------
+
+    def _train_epoch_reconstruction(self) -> float:
+        self.model.train()
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_cells = torch.tensor(0, device=self.device)
+
+        for batch in self.train_loader:
+            markers = batch["markers"].to(self.device)
+
+            self.optimiser.zero_grad()
+            recon, _z = self.model(markers)
+            loss = nn.functional.mse_loss(recon, markers)
+            loss.backward()
+            if self.grad_clip > 0:
+                nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+            self.optimiser.step()
+
+            n = torch.tensor(markers.size(0), device=self.device)
+            total_loss = total_loss + loss.detach() * n
+            n_cells = n_cells + n
+
+        return (total_loss / n_cells.clamp(min=1)).item()
+
+    @torch.no_grad()
+    def _val_epoch_reconstruction(self) -> tuple[float, float]:
+        """Returns (val_loss, val_mse) — both are the same MSE value."""
+        self.model.eval()
+        total_loss = torch.tensor(0.0, device=self.device)
+        n_cells = torch.tensor(0, device=self.device)
+
+        for batch in self.val_loader:
+            markers = batch["markers"].to(self.device)
+            recon, _z = self.model(markers)
+            loss = nn.functional.mse_loss(recon, markers)
+
+            n = torch.tensor(markers.size(0), device=self.device)
+            total_loss = total_loss + loss.detach() * n
+            n_cells = n_cells + n
+
+        avg_loss = (total_loss / n_cells.clamp(min=1)).item()
+        return avg_loss, avg_loss
+
+    # ------------------------------------------------------------------
+    # Checkpoint
+    # ------------------------------------------------------------------
+
     def _save_checkpoint(self, epoch: int) -> None:
-        state = {
+        state: dict[str, Any] = {
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimiser_state_dict": self.optimiser.state_dict(),
             "val_loss": self._best_val_loss,
             "model_class": self.model.__class__.__name__,
-            "vocab_size": self.model.vocab_size,
             "d_model": self.model.d_model,
-            "max_seq_len": self.model.max_seq_len,
+            "mode": self.mode,
         }
+        if hasattr(self.model, "vocab_size"):
+            state["vocab_size"] = self.model.vocab_size
+            state["max_seq_len"] = self.model.max_seq_len
+        if hasattr(self.model, "n_markers"):
+            state["n_markers"] = self.model.n_markers
+            state["n_classes"] = self.model.n_classes
         torch.save(state, self._best_checkpoint)

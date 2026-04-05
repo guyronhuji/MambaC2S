@@ -8,72 +8,95 @@
 
 ## 1. Project Purpose
 
-This project compares two autoregressive sequence-model architectures —
-**Transformer** (Cell2Sentence-style) and **Mamba** (Selective State Space
-Model) — on CyTOF single-cell immunology data.
+This project compares multiple architectures on Levine32 CyTOF single-cell
+immunology data (265,627 cells × 32 markers, 14 cell types).
 
-Each **cell** is represented as a token sequence (marker names ordered by
-expression rank, optionally annotated with strength bins).  A language model
-is trained to predict the next token in the sequence.  The resulting
-**hidden states** are used as cell embeddings for downstream analysis.
+Two training paradigms are evaluated side by side:
 
-The core scientific question: does **architecture** (Transformer vs Mamba) or
-**tokenisation scheme** (rank-only, strength-only, hybrid) matter more for
-learning useful cell representations?
+| Paradigm | Models | Data | Objective |
+|----------|--------|------|-----------|
+| **Sequence (self-supervised)** | Transformer, LSTM, GRU | Tokenised marker sequences | Next-token prediction |
+| **Vector (supervised)** | MLP classifier | Raw float marker vectors | Cross-entropy vs cell labels |
+| **Vector (unsupervised)** | MLP autoencoder, DeepSets autoencoder | Raw float marker vectors | MSE reconstruction |
+
+The core scientific question: which architecture and tokenisation scheme produces
+the best **cell embeddings** for downstream analysis (ARI, NMI, kNN purity)?
+
+### Fair Comparison Note
+
+Sequence models and vector autoencoders are both **unsupervised** — they use no
+cell-type labels during training.  `mlp_raw` (MLPClassifier) is the **supervised
+upper bound** and should be compared separately from the unsupervised models.
+The metadata field `supervision_type` in `training_summary.json` encodes this:
+`"supervised"` vs `"unsupervised"`.
 
 ---
 
-## 2. File Layout
+## 2. Model Inventory
+
+| Config | Model type | Supervision | Input | Objective |
+|--------|-----------|-------------|-------|-----------|
+| `transformer_{scheme}.yaml` | TransformerLM | unsupervised | sequence | next_token |
+| `lstm_{scheme}.yaml` | LSTMLanguageModel | unsupervised | sequence | next_token |
+| `gru_{scheme}.yaml` | GRULanguageModel | unsupervised | sequence | next_token |
+| `mlp_raw.yaml` | MLPClassifier | **supervised** | vector | classification |
+| `deepsets_raw.yaml` | DeepSetsClassifier | **supervised** | set | classification |
+| `mlp_autoencoder_raw.yaml` | MLPAutoencoder | unsupervised | vector | reconstruction |
+| `deepsets_autoencoder_raw.yaml` | DeepSetsAutoencoder | unsupervised | set | reconstruction |
+
+Schemes: `rank_only`, `strength_only`, `hybrid`.
+
+---
+
+## 3. File Layout
 
 ```
 MambaC2S/
-├── configs/              # YAML configs: base, transformer, mamba, dataset
+├── configs/              # YAML configs (13 experiments total)
 ├── data/                 # Raw and processed data (NOT committed)
 │   ├── levine32_processed.h5ad    # preprocessed anndata
 │   └── split_manifest.json        # cell-ID splits
-├── src/                  # All source code
+├── src/
 │   ├── data/             # loader, preprocessing, tokenisation, vocab, splits
-│   ├── models/           # base, transformer, mamba_model
-│   ├── training/         # trainer, CellSequenceDataset
+│   ├── models/           # base, transformer, lstm, gru, mlp, deepsets,
+│   │                     # mlp_autoencoder, deepsets_autoencoder
+│   ├── training/         # Trainer (modes: sequence / vector / reconstruction)
 │   ├── evaluation/       # metrics, perturbation
 │   └── utils/            # config, logging, reproducibility
 ├── scripts/              # CLI pipeline scripts
 ├── outputs/              # One subdirectory per experiment
 │   └── {EXP_ID}/
 │       ├── config_resolved.yaml
-│       ├── split_manifest.json
-│       ├── vocab.json
+│       ├── training_summary.json    ← includes supervision_type, input_structure, training_objective
 │       ├── training_log.csv
 │       ├── best_checkpoint.pt
-│       ├── training_summary.json
 │       ├── environment.json
-│       ├── README_experiment.md
 │       ├── metrics/
-│       │   ├── self_supervised.json
-│       │   ├── downstream.json
-│       │   ├── perturbation.json
-│       │   └── all_metrics.json
-│       ├── embeddings/
-│       │   ├── val_downstream_embeddings.npy
-│       │   ├── val_downstream_umap.npy
-│       │   └── test_embeddings.npy   (only after final eval)
-│       └── plots/
-│           └── val_downstream_umap.png
+│       │   ├── downstream.json      ← ARI, NMI, kNN purity
+│       │   └── self_supervised.json ← loss, perplexity (sequence models only)
+│       └── embeddings/
+│           └── val_downstream_embeddings.npy
 └── docs/                 # This and other documentation
 ```
 
 ---
 
-## 3. Metric Meanings
+## 4. Metric Meanings
 
-### Self-supervised (language modelling)
+### Self-supervised (sequence models only)
 
 | Metric | Meaning | Lower is better |
 |--------|---------|-----------------|
 | `loss` | Average cross-entropy per token on validation sequences | Yes |
 | `perplexity` | exp(loss); model uncertainty per token | Yes |
 
-### Downstream embedding quality
+### Reconstruction loss (vector autoencoders only)
+
+| Metric | Meaning | Lower is better |
+|--------|---------|-----------------|
+| `best_val_loss` | Mean squared error on held-out validation cells | Yes |
+
+### Downstream embedding quality (all models)
 
 | Metric | Meaning | Higher is better |
 |--------|---------|-----------------|
@@ -81,34 +104,26 @@ MambaC2S/
 | `NMI` | Normalized Mutual Information. Range [0, 1]; 1 = perfect | Yes |
 | `knn_purity` | Fraction of k=15 nearest neighbours sharing the same label. Range [0, 1] | Yes |
 
-### Perturbation
-
-| Metric | Meaning |
-|--------|---------|
-| `mean_cosine_distance` | Average cosine distance between original and perturbed cell embeddings. High value = model is sensitive to local token edits |
-| `std_cosine_distance` | Variability of the above |
-
 ---
 
-## 4. How to Compare Experiments
+## 5. How to Compare Experiments
 
 1. **Read `outputs/summary.csv`** for a ranked table of all experiments.
-2. For a specific experiment, read `outputs/{EXP_ID}/config_resolved.yaml`
-   to understand its exact settings.
-3. Compare `metrics/downstream.json` across experiments for embedding quality.
-4. Compare `metrics/self_supervised.json` for language modelling quality.
-5. **Never compare experiments** that used different split manifests —
-   check that `split_manifest.json` is identical (or that it was generated
-   from the same seed and fractions).
+2. For a specific experiment, read `outputs/{EXP_ID}/training_summary.json` —
+   this includes `supervision_type`, `input_structure`, `training_objective`.
+3. **Compare only within supervision tier**:
+   - Unsupervised: sequence models + vector autoencoders
+   - Supervised upper bound: MLPClassifier, DeepSetsClassifier
+4. Compare `metrics/downstream.json` across experiments for embedding quality.
+5. **Never compare experiments** that used different split manifests.
 
 ---
 
-## 5. What the Embeddings Represent
+## 6. What the Embeddings Represent
 
 - `val_downstream_embeddings.npy`: shape `(n_cells, d_model)`, float32.
-  Each row is one cell's embedding from the validation set (labeled_val).
-- `val_downstream_umap.npy`: shape `(n_cells, 2)`, 2-D UMAP projection.
-  Cell types that cluster together share similar representation in the model.
+  Each row is one cell's embedding from the labeled validation set.
+- All models expose an `encode()` method that returns these embeddings.
 
 To load:
 ```python
@@ -118,10 +133,14 @@ embs = np.load("outputs/EXP_ID/embeddings/val_downstream_embeddings.npy")
 
 ---
 
-## 6. Key Design Decisions
+## 7. Key Design Decisions
 
 - Test set (`labeled_test`) is held out.  **Do not use it for model selection.**
 - All experiments share the same `split_manifest.json` (generated once from seed=42).
-- Vocabularies are experiment-local (inside `outputs/{EXP_ID}/vocab.json`)
-  because different tokenisation schemes produce different token sets.
-- The Mamba model falls back to a pure-PyTorch SSM if `mamba_ssm` is not installed.
+- Sequence models are trained on `train` (labeled_train + unlabeled_train) and
+  validated on `val_self_supervised`.
+- Vector classifiers are trained on `labeled_train` and validated on `val_downstream`.
+- Vector autoencoders are trained on `train` (all cells, ignoring labels) and
+  validated on `val_self_supervised`.
+- Embeddings for downstream evaluation are always extracted from `val_downstream`
+  (labeled cells only, needed for ARI/NMI/kNN ground truth).

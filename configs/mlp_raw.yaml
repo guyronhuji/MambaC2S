@@ -1,0 +1,16 @@
+model:
+  type: "mlp"
+  d_model: 128
+  dropout: 0.1
+  data_mode: "vector"
+  hidden_dims: [256, 128]
+  # n_markers and n_classes are derived from data at runtime
+
+training:
+  batch_size: 256
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 15
+  grad_clip: 1.0
+  mixed_precision: false

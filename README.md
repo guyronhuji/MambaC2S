@@ -1,12 +1,18 @@
-# MambaC2S: Transformer vs Mamba on Levine32 CyTOF Data
+# MambaC2S: Architecture Comparison on Levine32 CyTOF Data
 
-Reproducible research codebase comparing Transformer and Mamba (SSM) architectures on
-CyTOF single-cell data using marker-token sequences (Cell2Sentence-style).
+Reproducible research codebase comparing multiple architectures on CyTOF single-cell data.
+Two paradigms are evaluated side by side:
+
+| Paradigm | Models | Objective |
+|----------|--------|-----------|
+| Sequence (self-supervised) | Transformer, LSTM, GRU | Next-token prediction on marker sequences |
+| Vector (supervised) | MLP, DeepSets | Cross-entropy classification on raw marker vectors |
 
 ## Scientific Question
 
-Does architecture choice (Transformer vs Mamba) matter for learning useful cell
-representations from CyTOF marker sequences, independently of tokenization choice?
+Does architecture choice and tokenization scheme matter for learning useful cell
+representations from CyTOF data? How do self-supervised sequence models compare to
+supervised vector classifiers on embedding quality (ARI, NMI, kNN purity)?
 
 ## Tokenization Schemes
 
@@ -69,11 +75,16 @@ ssh <podid>-<hash>@ssh.runpod.io -i ~/.ssh/id_ed25519
 bash <(curl -s https://raw.githubusercontent.com/guyronhuji/MambaC2S/main/runpod/setup_pod.sh)
 ```
 
-**Run the full experiment matrix** (6 combinations: 2 models × 3 schemes):
+**Run the full experiment matrix** (11 experiments: Transformer/LSTM/GRU × 3 schemes + MLP + DeepSets):
 ```bash
 cd /workspace/MambaC2S && bash runpod/train.sh
 ```
 `train.sh` automatically runs `prepare_data.py` and `make_splits.py` if not already done.
+
+To run only the hybrid-scheme sequence models (3 experiments):
+```bash
+bash runpod/train_hybrid.sh
+```
 
 **Fetch results back to your local machine** (run this on your Mac, not the pod):
 ```bash
@@ -138,11 +149,18 @@ az vm deallocate -g mambaC2S-rg -n mambaC2S-vm
 pip install -r requirements.txt
 python scripts/prepare_data.py
 python scripts/make_splits.py
-python scripts/train_model.py --config configs/transformer.yaml
-python scripts/train_model.py --config configs/mamba.yaml
+# Sequence models
+python scripts/train_model.py --config configs/transformer_hybrid.yaml
+python scripts/train_model.py --config configs/lstm_hybrid.yaml
+python scripts/train_model.py --config configs/gru_hybrid.yaml
+# Vector models
+python scripts/train_model.py --config configs/mlp_raw.yaml
+python scripts/train_model.py --config configs/deepsets_raw.yaml
 ```
 
-`device: "auto"` in `configs/base.yaml` picks MPS on Apple Silicon automatically.
+`device: "mps"` in `configs/base.yaml` uses Apple Silicon GPU by default.
+
+Or run all 11 experiments interactively via **notebook 05** (`notebooks/05_run_all_experiments.ipynb`).
 
 ---
 
@@ -154,12 +172,12 @@ MambaC2S/
   data/              Raw and processed data (not tracked)
   src/
     data/            Loading, preprocessing, tokenization, vocab, splits
-    models/          BaseModel, Transformer, Mamba
+    models/          BaseModel, VectorBaseModel, Transformer, LSTM, GRU, MLP, DeepSets
     training/        Trainer with early stopping and checkpointing
     evaluation/      Metrics (ARI, NMI, kNN purity), perturbation
     utils/           Config, logging, reproducibility
   scripts/           Entry-point CLI scripts
-  notebooks/         Jupyter notebooks (01–04)
+  notebooks/         Jupyter notebooks (01–05)
   outputs/           Experiment artifacts (not tracked)
   docs/              Analysis LLM instructions and schemas
   runpod/            RunPod pod scripts

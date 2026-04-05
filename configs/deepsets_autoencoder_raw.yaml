@@ -1,0 +1,17 @@
+model:
+  type: "deepsets_autoencoder"
+  d_model: 32
+  d_phi: 64
+  dropout: 0.1
+  data_mode: "reconstruction"
+  decoder_hidden_dims: [128, 256]
+  # Unsupervised permutation-invariant: trained with MSE reconstruction on all training cells
+
+training:
+  batch_size: 256
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 15
+  grad_clip: 1.0
+  mixed_precision: false

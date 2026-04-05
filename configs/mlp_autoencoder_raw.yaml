@@ -1,0 +1,16 @@
+model:
+  type: "mlp_autoencoder"
+  d_model: 32
+  dropout: 0.1
+  data_mode: "reconstruction"
+  hidden_dims: [256, 128]
+  # Unsupervised: trained with MSE reconstruction on all training cells
+
+training:
+  batch_size: 256
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 15
+  grad_clip: 1.0
+  mixed_precision: false

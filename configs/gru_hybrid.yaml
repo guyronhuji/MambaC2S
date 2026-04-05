@@ -1,0 +1,18 @@
+model:
+  type: "gru"
+  d_model: 128
+  n_layers: 3
+  dropout: 0.1
+  max_seq_len: 128
+
+tokenization:
+  scheme: "hybrid"
+
+training:
+  batch_size: 128
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  patience: 10
+  grad_clip: 1.0
+  mixed_precision: true

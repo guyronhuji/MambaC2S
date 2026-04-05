@@ -18,7 +18,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from src.models.base import BaseModel
+from src.models.base import BaseModel, VectorBaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +181,35 @@ def compute_embedding_metrics(
 # ===========================================================================
 # UMAP
 # ===========================================================================
+
+@torch.no_grad()
+def extract_embeddings_vector(
+    model: VectorBaseModel,
+    dataloader: DataLoader,
+    device: str | torch.device = "cpu",
+) -> np.ndarray:
+    """Extract cell embeddings from a vector model (MLP / DeepSets).
+
+    Args:
+        model: Trained vector model with a working encode method.
+        dataloader: Yields ``{markers, labels}`` batches.
+        device: Compute device.
+
+    Returns:
+        Float32 NumPy array of shape ``(n_cells, d_model)``.
+    """
+    device = torch.device(device) if isinstance(device, str) else device
+    model.eval()
+    model.to(device)
+    embeddings = []
+
+    for batch in dataloader:
+        markers = batch["markers"].to(device)
+        emb = model.encode(markers)
+        embeddings.append(emb.cpu().numpy())
+
+    return np.concatenate(embeddings, axis=0).astype(np.float32)
+
 
 def compute_umap(
     embeddings: np.ndarray,

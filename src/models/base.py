@@ -1,9 +1,10 @@
-"""Abstract base class for all sequence models.
+"""Abstract base classes for all CyTOF models.
 
-All models must implement:
-  - forward(): next-token logits from input token ids
-  - encode():  per-cell embeddings via pooling of hidden states
-  - generate(): optional greedy/sampling autoregressive generation
+Sequence models (Transformer, LSTM, GRU):
+  - BaseModel: forward() → next-token logits, encode() → pooled embedding
+
+Vector models (MLP, DeepSets):
+  - VectorBaseModel: forward() → class logits, encode() → d_model embedding
 """
 
 from __future__ import annotations
@@ -165,5 +166,62 @@ class BaseModel(ABC, nn.Module):
             f"{self.__class__.__name__}("
             f"vocab_size={self.vocab_size}, "
             f"d_model={self.d_model}, "
+            f"params={params:,})"
+        )
+
+
+# ===========================================================================
+# VectorBaseModel — for cell-vector classifiers (MLP, DeepSets)
+# ===========================================================================
+
+class VectorBaseModel(ABC, nn.Module):
+    """Abstract base for supervised cell-vector classifiers.
+
+    Input is a raw marker-value vector (batch, n_markers); output is class
+    logits (batch, n_classes).  The :meth:`encode` method returns the
+    d_model-dimensional intermediate embedding for downstream quality metrics.
+    """
+
+    def __init__(self, n_markers: int, d_model: int, n_classes: int) -> None:
+        super().__init__()
+        self.n_markers = n_markers
+        self.d_model = d_model
+        self.n_classes = n_classes
+
+    @abstractmethod
+    def forward(self, markers: torch.Tensor) -> torch.Tensor:
+        """Compute class logits.
+
+        Args:
+            markers: Float tensor, shape ``(batch, n_markers)``.
+
+        Returns:
+            Logits of shape ``(batch, n_classes)``.
+        """
+        ...
+
+    @abstractmethod
+    def encode(self, markers: torch.Tensor) -> torch.Tensor:
+        """Return d_model-dimensional cell embedding.
+
+        Args:
+            markers: Float tensor, shape ``(batch, n_markers)``.
+
+        Returns:
+            Embeddings of shape ``(batch, d_model)``.
+        """
+        ...
+
+    def count_parameters(self) -> int:
+        """Return the total number of trainable parameters."""
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def __repr__(self) -> str:
+        params = self.count_parameters()
+        return (
+            f"{self.__class__.__name__}("
+            f"n_markers={self.n_markers}, "
+            f"d_model={self.d_model}, "
+            f"n_classes={self.n_classes}, "
             f"params={params:,})"
         )

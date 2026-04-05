@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ============================================================
-# Run hybrid-scheme experiments only: transformer + mamba
-# 2 jobs total — runs them in parallel.
+# Run hybrid-scheme experiments: Transformer, LSTM, GRU
+# 3 jobs — runs them in parallel.
 # ============================================================
 
 set -euo pipefail
 
 cd /workspace/MambaC2S
 
-PARALLEL_JOBS=2   # both jobs run simultaneously
+PARALLEL_JOBS=3
 REFRESH=5
 
 # Prep data if needed
@@ -28,15 +28,19 @@ echo "Hybrid-scheme experiment run — $(date)"
 echo "Logs → $LOG_DIR"
 echo ""
 
-ALL_JOBS=("transformer|hybrid" "mamba|hybrid")
+ALL_JOBS=(
+    "configs/transformer_hybrid.yaml"
+    "configs/lstm_hybrid.yaml"
+    "configs/gru_hybrid.yaml"
+)
 
 run_job() {
-    local model="$1" scheme="$2" logfile="$3" statusfile="$4"
+    local config="$1" logfile="$2" statusfile="$3"
     echo "running" > "$statusfile"
     python scripts/train_model.py \
-        --config "configs/${model}.yaml" \
+        --config "$config" \
         --override \
-            "tokenization.scheme=${scheme}" \
+            "device=cuda" \
             "training.mixed_precision=true" \
             "training.batch_size=256" \
             "training.num_workers=4" \
@@ -50,11 +54,11 @@ python runpod/monitor.py --log-dir "$LOG_DIR" --jobs "${#ALL_JOBS[@]}" --refresh
 MONITOR_PID=$!
 
 PIDS=()
-for job in "${ALL_JOBS[@]}"; do
-    model="${job%%|*}"
-    scheme="${job##*|}"
-    logfile="$LOG_DIR/${model}_${scheme}.log"
-    statusfile="$LOG_DIR/${model}_${scheme}.status"
+for config in "${ALL_JOBS[@]}"; do
+    name="${config##*/}"
+    name="${name%.yaml}"
+    logfile="$LOG_DIR/${name}.log"
+    statusfile="$LOG_DIR/${name}.status"
     echo "queued" > "$statusfile"
 
     while [ ${#PIDS[@]} -ge "$PARALLEL_JOBS" ]; do
@@ -66,7 +70,7 @@ for job in "${ALL_JOBS[@]}"; do
         PIDS=("${new_pids[@]+"${new_pids[@]}"}")
     done
 
-    run_job "$model" "$scheme" "$logfile" "$statusfile" &
+    run_job "$config" "$logfile" "$statusfile" &
     PIDS+=($!)
 done
 

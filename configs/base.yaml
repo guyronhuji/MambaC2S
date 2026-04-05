@@ -1,5 +1,5 @@
 seed: 42
-device: "auto"  # auto = CUDA > MPS > CPU; override with "cuda", "mps", or "cpu"
+device: "mps"   # MPS (Apple Silicon) by default; RunPod scripts override with "cuda"
 
 dataset:
   data_dir: "data/"
